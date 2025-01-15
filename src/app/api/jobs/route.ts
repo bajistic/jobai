@@ -34,7 +34,15 @@ export async function GET(request: NextRequest) {
     console.log('✅ Found jobs:', { total, jobCount: jobs.length })
     
     return NextResponse.json({
-      data: jobs,
+      data: jobs.map(job => ({
+        ...job,
+        id: Number(job.id),
+        cover_letter: job.cover_letter?.map(cl => ({
+          ...cl,
+          id: Number(cl.id),
+          job_id: cl.job_id ? Number(cl.job_id) : null
+        }))
+      })),
       total,
       page,
       pageSize
