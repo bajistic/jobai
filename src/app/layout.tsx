@@ -1,36 +1,40 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
+'use client'
+
+import { useState } from 'react'
+import dynamic from 'next/dynamic'
+import { Inter } from "next/font/google"
+import "./globals.css"
+
+const Header = dynamic(() => import('@/components/Header'), { ssr: false })
+const Sidebar = dynamic(() => import('@/components/Sidebar'), { ssr: false })
 
 const inter = Inter({ subsets: ["latin"] });
 
-export const metadata: Metadata = {
-  title: "Job Application Tracker",
-  description: "Track your job applications and generate cover letters",
-};
-
 export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+  children
+}: {
+  children: React.ReactNode
+}) {
+  const [showJobList, setShowJobList] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+
   return (
     <html lang="en">
       <body className={inter.className}>
-        <nav className="bg-slate-800 text-white p-4">
-          <div className="container mx-auto flex justify-between items-center">
-            <h1 className="text-xl font-bold">Job Tracker</h1>
-            <div className="space-x-4">
-              <a href="/jobs">Jobs</a>
-              <a href="/cover-letters">Cover Letters</a>
-              <a href="/scrape">Scrape</a>
-            </div>
+        <div className="flex h-screen overflow-hidden">
+          <Sidebar />
+          <div className="flex flex-col flex-1 overflow-hidden">
+            <Header 
+              onToggleJobList={() => setShowJobList(!showJobList)} 
+              showJobList={showJobList}
+              onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+            />
+            <main className="flex-1">
+              {children}
+            </main>
           </div>
-        </nav>
-        <main className="container mx-auto p-4">
-          {children}
-        </main>
+        </div>
       </body>
     </html>
-  );
+  )
 }

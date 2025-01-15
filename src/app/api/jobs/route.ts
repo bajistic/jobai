@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { CoverLetter, Job } from '@/lib/types/shared'
 
 export async function GET(request: NextRequest) {
   try {
@@ -34,13 +35,13 @@ export async function GET(request: NextRequest) {
     console.log('✅ Found jobs:', { total, jobCount: jobs.length })
     
     return NextResponse.json({
-      data: jobs.map(job => ({
+      data: jobs.map((job: Job) => ({
         ...job,
         id: Number(job.id),
-        cover_letter: job.cover_letter?.map(cl => ({
+        cover_letter: job.coverLetter?.map((cl: CoverLetter) => ({
           ...cl,
           id: Number(cl.id),
-          job_id: cl.job_id ? Number(cl.job_id) : null
+          job_id: cl.jobId ? Number(cl.jobId) : null
         }))
       })),
       total,
