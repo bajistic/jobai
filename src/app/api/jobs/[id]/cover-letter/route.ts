@@ -6,7 +6,7 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const job = await prisma.job.findUnique({
+    const job = await prisma.jobs.findUnique({
       where: { id: parseInt(params.id) }
     })
     
@@ -17,15 +17,16 @@ export async function POST(
     // TODO: Add your cover letter generation logic here
     const content = `Generated cover letter for ${job.title} at ${job.company}`
 
-    const coverLetter = await prisma.coverLetter.create({
+    const coverLetter = await prisma.cover_letters.create({
       data: {
-        jobId: job.id,
+        job_id: job.id,
         content,
       }
     })
 
     return NextResponse.json(coverLetter)
   } catch (error) {
+    console.error('Error generating cover letter:', error)
     return NextResponse.json(
       { error: 'Failed to generate cover letter' },
       { status: 500 }

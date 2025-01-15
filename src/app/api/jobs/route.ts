@@ -4,9 +4,12 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET(request: NextRequest) {
   try {
+    // Breakpoint 1: Check if route is hit
+    debugger;
     console.log('🔍 Testing database connection...')
     
-    // Test query
+    // Breakpoint 2: Before database query
+    debugger;
     const count = await prisma.jobs.count()
     console.log('✅ Database connected! Total jobs:', count)
 
@@ -14,11 +17,11 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1')
     const pageSize = parseInt(searchParams.get('pageSize') || '20')
     
-    console.log('📊 Query params:', { page, pageSize })
-
+    // Breakpoint 3: Before main query
+    debugger;
     const [jobs, total] = await Promise.all([
       prisma.jobs.findMany({
-        orderBy: { created_at: 'desc' },
+        orderBy: { published: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
         include: { cover_letter: true }
@@ -26,6 +29,8 @@ export async function GET(request: NextRequest) {
       prisma.jobs.count()
     ])
 
+    // Breakpoint 4: Check query results
+    debugger;
     console.log('✅ Found jobs:', { total, jobCount: jobs.length })
     
     return NextResponse.json({
@@ -35,6 +40,8 @@ export async function GET(request: NextRequest) {
       pageSize
     })
   } catch (error) {
+    // Breakpoint 5: Check errors
+    debugger;
     console.error('❌ Database Error:', error)
     return NextResponse.json(
       { error: 'Failed to fetch jobs', details: error instanceof Error ? error.message : 'Unknown error' },
@@ -46,19 +53,20 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json()
-    const job = await prisma.job.create({
+    const job = await prisma.jobs.create({
       data: {
         title: data.title,
         company: data.company,
         location: data.location,
         status: data.status,
-        link: data.link,
+        url: data.url,
       },
     })
     return NextResponse.json(job)
   } catch (error) {
+    console.error('❌ Database Error:', error)
     return NextResponse.json(
-      { error: 'Failed to create job' },
+      { error: 'Failed to create job', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }

@@ -9,9 +9,9 @@ export default async function JobDetailsPage({
 }: {
   params: { id: string }
 }) {
-  const job = await prisma.job.findUnique({
+  const job = await prisma.jobs.findUnique({
     where: { id: parseInt(params.id) },
-    include: { coverLetter: true }
+    include: { cover_letter: true }
   })
 
   if (!job) {
@@ -25,9 +25,9 @@ export default async function JobDetailsPage({
           <h1 className="text-2xl font-bold">{job.title}</h1>
           <p className="text-gray-600">{job.company}</p>
           <p className="text-gray-500">{job.location}</p>
-          <p className="text-sm text-gray-500">Posted: {formatDate(job.published)}</p>
+          <p className="text-sm text-gray-500">Posted: {job.published ? formatDate(job.published) : 'Not specified'}</p>
         </div>
-        <JobActions job={job} />
+        <JobActions job={{...job, id: Number(job.id)}} />
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">

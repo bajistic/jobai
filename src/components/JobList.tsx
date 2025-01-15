@@ -17,8 +17,14 @@ export function JobList() {
   async function fetchJobs() {
     try {
       const response = await fetch('/api/jobs')
-      const { data } = await response.json()
-      setJobs(data)
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      const result = await response.json()
+      if (!result.data) {
+        throw new Error('No data in response')
+      }
+      setJobs(result.data)
     } catch (error) {
       console.error('Error fetching jobs:', error)
       setJobs([])
