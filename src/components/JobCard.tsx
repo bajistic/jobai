@@ -3,14 +3,21 @@
 import { Job } from '@/lib/types/shared'
 import { useState } from 'react'
 import Link from 'next/link'
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { MoreVertical, BookmarkIcon, EyeOff, FileText, PenSquare } from 'lucide-react'
+import { cn } from "@/lib/utils"
 
 interface JobCardProps {
   job: Job
   onUpdate: () => void
+  isSelected?: boolean
+  onSelect?: (job: Job) => void
 }
 
-export function JobCard({ job, onUpdate }: JobCardProps) {
-  const [isExpanded, setIsExpanded] = useState(false)
+export function JobCard({ job, onUpdate, isSelected, onSelect }: JobCardProps) {
 
   const toggleHidden = async () => {
     try {
@@ -38,61 +45,70 @@ export function JobCard({ job, onUpdate }: JobCardProps) {
     }
   }
 
-  return (
-    <div className={`bg-white rounded-lg shadow p-4 ${job.isHidden ? 'opacity-50' : ''}`}>
-      <div className="flex justify-between items-start">
-        <div>
-          <h2 className="text-xl font-semibold">{job.title}</h2>
-          <p className="text-gray-600">{job.company}</p>
-          <p className="text-gray-500">{job.location}</p>
-        </div>
-        <div className="flex space-x-2">
-          <button
-            onClick={toggleStarred}
-            className={`p-2 rounded ${job.isStarred ? 'text-yellow-500' : 'text-gray-400'}`}
-          >
-            ★
-          </button>
-          <button
-            onClick={toggleHidden}
-            className={`p-2 rounded ${job.isHidden ? 'text-red-500' : 'text-gray-400'}`}
-          >
-            👁
-          </button>
-        </div>
-      </div>
-      
-      <button 
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="mt-2 text-blue-500 hover:underline"
-      >
-        {isExpanded ? 'Show less' : 'Show more'}
-      </button>
+  const handleMenuAction = (action: string) => {
+    switch (action) {
+      case 'star':
+        toggleStarred()
+        break
+      case 'hide':
+        toggleHidden()
+        break
+      case 'notes':
+        console.log('Notes action for job:', job.id)
+        break
+      default:
+        console.log(`Action ${action} for job:`, job.id)
+    }
+  }
 
-      {isExpanded && (
-        <div className="mt-4">
-          <div className="prose max-w-none">
-            {job.description}
-          </div>
-          <div className="mt-4 flex space-x-4">
-            <Link
-              href={job.url}
-              target="_blank"
-              className="text-blue-500 hover:underline"
-            >
-              View Original
-            </Link>
-            {!job.coverLetter && (
-              <Link
-                href={`/jobs/${job.id}/generate`}
-                className="text-green-500 hover:underline"
-              >
-                Generate Cover Letter
-              </Link>
-            )}
-          </div>
-        </div>
+  return (
+    <Card 
+      className={cn(
+        "cursor-pointer hover:bg-accent/50 transition-colors",
+        job.isHidden && "opacity-50",
+        isSelected && "ring-2 ring-primary"
       )}
-    </div>
+      onClick={() => onSelect?.(job)}
+    >
+      <CardHeader className="pb-2 flex flex-row justify-between items-start">
+        <CardTitle className="text-lg font-semibold">{job.title}</CardTitle>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem onClick={() => handleMenuAction('star')}>
+              <BookmarkIcon className="mr-2 h-4 w-4" />
+              <span>{job.isStarred ? 'Unstar' : 'Star'}</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleMenuAction('hide')}>
+              <EyeOff className="mr-2 h-4 w-4" />
+              <span>{job.isHidden ? 'Unhide' : 'Hide'}</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleMenuAction('notes')}>
+              <PenSquare className="mr-2 h-4 w-4" />
+              <span>Notes</span>
+            </DropdownMenuItem>
+            {!job.coverLetter && (
+              <DropdownMenuItem asChild>
+                <Link href={`/jobs/${job.id}/generate`}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  <span>Generate Letter</span>
+                </Link>
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground">{job.company}</p>
+        <p className="text-sm text-muted-foreground">{job.location}</p>
+        <Badge variant="secondary" className="mt-2">
+          {job.status || 'New'}
+        </Badge>
+      </CardContent>
+    </Card>
   )
 } 

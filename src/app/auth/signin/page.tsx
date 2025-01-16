@@ -82,7 +82,7 @@ export default function SignIn() {
             </Button>
           </form>
           <p className="text-center">
-            Don't have an account? <Link href="/auth/signup" className="text-blue-500">Sign Up</Link>
+            Don&apos;t have an account? <Link href="/auth/signup" className="text-blue-500">Sign Up</Link>
           </p>
         </CardContent>
       </Card>
