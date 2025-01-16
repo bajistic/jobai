@@ -12,7 +12,7 @@ export default function SignIn() {
   const { data: session, status } = useSession()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState("")
+  const [error, setError] = useState('')
 
   // Redirect to home if already authenticated
   if (status !== 'loading' && session) {
@@ -26,18 +26,23 @@ export default function SignIn() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    const formData = new FormData(e.currentTarget)
-    
-    const result = await signIn("credentials", {
-      email: formData.get("email"),
-      password: formData.get("password"),
-      redirect: false,
-    })
+    try {
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false // Don't redirect automatically
+      })
 
-    if (result?.error) {
-      setError("Invalid credentials")
-    } else {
-      redirect("/")
+      console.log('Sign in result:', result) // Debug log
+
+      if (result?.error) {
+        setError(result.error)
+      } else if (result?.ok) {
+        window.location.href = '/' // Manual redirect on success
+      }
+    } catch (err) {
+      console.error('Sign in error:', err) // Debug log
+      setError('An error occurred during sign in')
     }
   }
 
