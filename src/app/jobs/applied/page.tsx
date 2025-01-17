@@ -1,12 +1,12 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useState, useEffect } from 'react'
-import { Job } from '@/lib/types/shared'
+import { useEffect } from 'react'
 import { useJobs } from '@/contexts/JobContext'
 
 const JobList = dynamic(() => import('@/components/JobList'), { ssr: false })
 const JobPreview = dynamic(() => import('@/components/JobPreview'), { ssr: false })
+
 export default function AppliedJobsPage() {
   const { 
     jobs, 

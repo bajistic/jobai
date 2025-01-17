@@ -154,9 +154,17 @@ export function JobCard({ job, onUpdate, isSelected, onSelect }: JobCardProps) {
         <CardContent>
           <p className="text-sm text-muted-foreground">{job.company}</p>
           <p className="text-sm text-muted-foreground">{job.location}</p>
-          <Badge variant="secondary" className="mt-2">
-            {job.status || 'New'}
-          </Badge>
+          <div className="flex gap-2 mt-2">
+            <Badge variant="secondary">
+              {job.status || 'New'}
+            </Badge>
+            {job.isStarred && (
+              <Badge variant="secondary">
+                <BookmarkIcon className="h-3 w-3 mr-1" />
+                Starred
+              </Badge>
+            )}
+          </div>
         </CardContent>
       </Card>
 
