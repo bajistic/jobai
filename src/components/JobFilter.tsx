@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useJobs } from '@/contexts/JobContext'
 import { JobFilter as JobFilterType } from '@/lib/types/shared'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -17,6 +18,7 @@ import { Filter } from 'lucide-react'
 export function JobFilter() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { fetchJobs } = useJobs()
   
   const [filters, setFilters] = useState<JobFilterType>({
     searchQuery: searchParams.get('searchQuery') || '',
@@ -27,15 +29,46 @@ export function JobFilter() {
 
   const [localFilters, setLocalFilters] = useState(filters)
 
+  // Update local filters when URL params change
+  useEffect(() => {
+    setLocalFilters({
+      searchQuery: searchParams.get('searchQuery') || '',
+      location: searchParams.get('location') || '',
+      showHidden: searchParams.get('showHidden') === 'true',
+      onlyStarred: searchParams.get('onlyStarred') === 'true',
+    })
+  }, [searchParams])
+
   const applyFilters = () => {
     const params = new URLSearchParams()
-    if (localFilters.searchQuery) params.set('searchQuery', localFilters.searchQuery)
-    if (localFilters.location) params.set('location', localFilters.location)
-    if (localFilters.showHidden) params.set('showHidden', 'true')
-    if (localFilters.onlyStarred) params.set('onlyStarred', 'true')
+    
+    // Only add non-empty values to params
+    Object.entries(localFilters).forEach(([key, value]) => {
+      if (value) {
+        if (typeof value === 'boolean') {
+          params.set(key, 'true')
+        } else if (typeof value === 'string' && value.trim()) {
+          params.set(key, value.trim())
+        }
+      }
+    })
+
+    // Add current page if it exists
+    const currentPage = searchParams.get('page')
+    if (currentPage) {
+      params.set('page', currentPage)
+    }
+
+    // Add pageSize
+    params.set('pageSize', '10')
 
     setFilters(localFilters)
-    router.push(`/jobs?${params.toString()}`)
+    router.push(`?${params.toString()}`, { scroll: false })
+    fetchJobs({
+      ...localFilters,
+      page: Number(currentPage) || 1,
+      pageSize: 10
+    })
   }
 
   return (

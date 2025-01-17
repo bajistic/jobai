@@ -13,11 +13,11 @@ export async function GET(request: NextRequest) {
     const pageSize = parseInt(searchParams.get('pageSize') || '20')
     const onlyStarred = searchParams.get('onlyStarred') === 'true'
     const showHidden = searchParams.get('showHidden') === 'true'
-    const status = searchParams.get('status')
+    const status = searchParams.get('status') as JobStatus | undefined
     const location = searchParams.get('location')
     const searchQuery = searchParams.get('searchQuery')
 
-    console.log('API Received params:', { onlyStarred, showHidden, status, page, pageSize })
+    console.log('API Received params:', { onlyStarred, showHidden, status, page, pageSize, location, searchQuery })
 
     const where = {
       ...(onlyStarred && {

@@ -24,6 +24,7 @@ export default function JobList({ jobs, loading, onSelectJob, selectedJobId, tot
   const router = useRouter()
   const searchParams = useSearchParams()
   const currentPage = Number(searchParams.get('page')) || 1
+  const location = searchParams.get('location')
   const jobsPerPage = 10
   
   const totalPages = Math.max(1, Math.ceil(totalJobs / jobsPerPage))
@@ -31,6 +32,9 @@ export default function JobList({ jobs, loading, onSelectJob, selectedJobId, tot
   const handlePageChange = (page: number) => {
     const params = new URLSearchParams(searchParams.toString())
     params.set('page', page.toString())
+    if (location) {
+      params.set('location', location)
+    }
     router.push(`?${params.toString()}`, { scroll: false })
   }
 
