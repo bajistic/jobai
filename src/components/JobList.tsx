@@ -51,11 +51,11 @@ export default function JobList({ jobs, loading, onSelectJob, selectedJobId, tot
             {[...Array(5)].map((_, i) => (
               <Card key={i} className="cursor-pointer">
                 <CardHeader className="pb-2">
-                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-4 w-full" />
                 </CardHeader>
                 <CardContent>
-                  <Skeleton className="h-3 w-1/2 mb-2" />
-                  <Skeleton className="h-3 w-1/3" />
+                  <Skeleton className="h-3 w-full mb-2" />
+                  <Skeleton className="h-3 w-full" />
                 </CardContent>
               </Card>
             ))}

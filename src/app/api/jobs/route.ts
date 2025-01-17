@@ -68,6 +68,8 @@ export async function GET(request: NextRequest) {
         job_id: Number(p.job_id),
         user_id: Number(p.user_id)
       })),
+      isStarred: job.preferences?.some((p: any) => p.is_starred) || false,
+      isHidden: job.preferences?.some((p: any) => p.is_hidden) || false,
       cover_letter: job.cover_letter?.map((cl: any) => ({
         ...cl,
         id: Number(cl.id),

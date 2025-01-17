@@ -28,13 +28,24 @@ export interface Job {
   workload?: string;
   published: Date;
   ranking?: string;
-  isHidden?: boolean;
-  isStarred?: boolean;
   categories: string[];
   contract?: string;
   status: JobStatus;
   notes?: string;
-  coverLetter?: CoverLetter;
+  preferences?: JobPreference[];
+  cover_letter?: CoverLetter[];
+  isHidden?: boolean;
+  isStarred?: boolean;
+}
+
+export interface JobPreference {
+  id: number;
+  job_id: number;
+  user_id: number;
+  is_hidden: boolean;
+  is_starred: boolean;
+  created_at: Date;
+  updated_at: Date;
 }
 
 export interface CoverLetter {

@@ -25,16 +25,16 @@ export function JobFilter() {
     onlyStarred: searchParams.get('onlyStarred') === 'true',
   })
 
-  const updateFilters = (newFilters: Partial<JobFilterType>) => {
-    const updated = { ...filters, ...newFilters }
-    setFilters(updated)
+  const [localFilters, setLocalFilters] = useState(filters)
 
+  const applyFilters = () => {
     const params = new URLSearchParams()
-    if (updated.searchQuery) params.set('searchQuery', updated.searchQuery)
-    if (updated.location) params.set('location', updated.location)
-    if (updated.showHidden) params.set('showHidden', 'true')
-    if (updated.onlyStarred) params.set('onlyStarred', 'true')
+    if (localFilters.searchQuery) params.set('searchQuery', localFilters.searchQuery)
+    if (localFilters.location) params.set('location', localFilters.location)
+    if (localFilters.showHidden) params.set('showHidden', 'true')
+    if (localFilters.onlyStarred) params.set('onlyStarred', 'true')
 
+    setFilters(localFilters)
     router.push(`/jobs?${params.toString()}`)
   }
 
@@ -59,8 +59,8 @@ export function JobFilter() {
               <Label htmlFor="search">Search</Label>
               <Input
                 id="search"
-                value={filters.searchQuery}
-                onChange={(e) => updateFilters({ searchQuery: e.target.value })}
+                value={localFilters.searchQuery}
+                onChange={(e) => setLocalFilters({ ...localFilters, searchQuery: e.target.value })}
                 placeholder="Search jobs..."
               />
             </div>
@@ -68,8 +68,8 @@ export function JobFilter() {
               <Label htmlFor="location">Location</Label>
               <Input
                 id="location"
-                value={filters.location}
-                onChange={(e) => updateFilters({ location: e.target.value })}
+                value={localFilters.location}
+                onChange={(e) => setLocalFilters({ ...localFilters, location: e.target.value })}
                 placeholder="Filter by location..."
               />
             </div>
@@ -78,22 +78,23 @@ export function JobFilter() {
             <div className="flex items-center space-x-2">
               <Checkbox 
                 id="showHidden" 
-                checked={filters.showHidden}
+                checked={localFilters.showHidden}
                 onCheckedChange={(checked) => 
-                  updateFilters({ showHidden: checked === true })}
+                  setLocalFilters({ ...localFilters, showHidden: checked === true })}
               />
               <Label htmlFor="showHidden">Show Hidden</Label>
             </div>
             <div className="flex items-center space-x-2">
               <Checkbox 
                 id="onlyStarred" 
-                checked={filters.onlyStarred}
+                checked={localFilters.onlyStarred}
                 onCheckedChange={(checked) => 
-                  updateFilters({ onlyStarred: checked === true })}
+                  setLocalFilters({ ...localFilters, onlyStarred: checked === true })}
               />
               <Label htmlFor="onlyStarred">Only Starred</Label>
             </div>
           </div>
+          <Button onClick={applyFilters}>Apply Filters</Button>
         </div>
       </PopoverContent>
     </Popover>

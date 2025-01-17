@@ -45,12 +45,12 @@ export function JobCard({ job, onUpdate, isSelected, onSelect }: JobCardProps) {
 
   const toggleStarred = async () => {
     try {
-      await fetch(`/api/jobs/${job.id}`, {
+      await fetch(`/api/jobs/${job.id}/star`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isStarred: !job.isStarred }),
       })
-      onUpdate()
+      onUpdate?.()
     } catch (error) {
       console.error('Error updating job:', error)
     }
@@ -159,7 +159,14 @@ export function JobCard({ job, onUpdate, isSelected, onSelect }: JobCardProps) {
               {job.status || 'New'}
             </Badge>
             {job.isStarred && (
-              <Badge variant="secondary">
+              <Badge 
+                variant="secondary"
+                className="cursor-pointer hover:bg-accent"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  toggleStarred()
+                }}
+              >
                 <BookmarkIcon className="h-3 w-3 mr-1" />
                 Starred
               </Badge>
