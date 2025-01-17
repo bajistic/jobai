@@ -43,38 +43,6 @@ export default function JobList({ jobs, loading, onSelectJob, selectedJobId, tot
     }
   }, [currentPage, totalPages])
 
-  // Generate page numbers with ellipsis
-  const getPageNumbers = () => {
-    const delta = 1; // Show only 1 page before and after current (3 total)
-    const range = []
-    const rangeWithDots = []
-    let l;
-
-    for (let i = 1; i <= totalPages; i++) {
-      if (
-        i === 1 || // First page
-        i === totalPages || // Last page
-        (i >= currentPage - delta && i <= currentPage + delta) // Pages around current
-      ) {
-        range.push(i)
-      }
-    }
-
-    for (let i of range) {
-      if (l) {
-        if (i - l === 2) {
-          rangeWithDots.push(l + 1)
-        } else if (i - l !== 1) {
-          rangeWithDots.push('...')
-        }
-      }
-      rangeWithDots.push(i)
-      l = i
-    }
-
-    return rangeWithDots
-  }
-
   return (
     <ScrollArea className="h-[calc(100vh-4rem)]">
       <div className="p-4 space-y-4">
