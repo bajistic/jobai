@@ -12,13 +12,15 @@ import {
 import { cn } from "@/lib/utils"
 import { 
   ChevronDown, 
+  Menu,
   Home, 
   BookmarkIcon, 
   CheckCircle, 
   EyeOff, 
   Archive, 
   ListFilter,
-  User 
+  User,
+  X
 } from 'lucide-react'
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -36,10 +38,14 @@ export default function Sidebar() {
     )}>
       <div className="flex h-16 items-center justify-between px-4 border-b">
         <h2 className={cn("text-xl font-bold", !isOpen && "hidden")}>
-          Job Dashboard
+          Job AI
         </h2>
         <Button variant="ghost" size="icon" onClick={() => setIsOpen(!isOpen)}>
-          <ChevronDown className={cn("h-4 w-4 transition-transform", !isOpen && "rotate-180")} />
+          {!isOpen ? (
+            <Menu className={cn("h-4 w-4 transition-transform")} />
+          ) : (
+            <X className={cn("h-4 w-4 transition-transform")} />
+          )}
         </Button>
       </div>
 

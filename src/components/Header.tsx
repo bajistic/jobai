@@ -13,12 +13,12 @@ interface HeaderProps {
 
 export default function Header({ onToggleJobList, showJobList, onToggleSidebar }: HeaderProps) {
   return (
-    <header className="border-b bg-background">
-      <div className="flex flex-col space-y-2 p-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
+    <header className="border-b bg-background h-16">
+      <div className="flex flex-col space-y-2 p-4 py-3 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="icon" onClick={onToggleSidebar}>
+{/*           <Button variant="ghost" size="icon" onClick={onToggleSidebar}>
             <Menu className="h-5 w-5" />
-          </Button>
+          </Button> */}
           <div className="relative flex-1 lg:flex-none">
             <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
