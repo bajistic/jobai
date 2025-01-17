@@ -1,28 +1,36 @@
 'use client'
 
 import dynamic from 'next/dynamic'
+import { useState, useEffect } from 'react'
+import { Job } from '@/lib/types/shared'
 import { useJobs } from '@/contexts/JobContext'
-import { useEffect } from 'react'
 
 const JobList = dynamic(() => import('@/components/JobList'), { ssr: false })
 const JobPreview = dynamic(() => import('@/components/JobPreview'), { ssr: false })
-
-export default function Dashboard() {
-  const { jobs, loading, totalJobs, selectedJobId, setSelectedJobId, fetchJobs } = useJobs()
+export default function AppliedJobsPage() {
+  const { 
+    jobs, 
+    loading, 
+    totalJobs, 
+    selectedJobId, 
+    setSelectedJobId, 
+    fetchJobs,
+    pagination: { currentPage }
+  } = useJobs()
 
   useEffect(() => {
-    fetchJobs()
-  }, [fetchJobs])
+    fetchJobs({ status: 'applied' })
+  }, [fetchJobs, currentPage])
 
   return (
     <div className="flex flex-1 overflow-hidden">
       <div className="w-1/3 border-r">
         <JobList 
           jobs={jobs} 
-          loading={loading}
-          onSelectJob={(job) => setSelectedJobId(job.id)} 
-          selectedJobId={selectedJobId}
+          loading={loading} 
           totalJobs={totalJobs}
+          selectedJobId={selectedJobId}
+          onSelectJob={(job) => setSelectedJobId(job.id)}
         />
       </div>
       <div className="flex-1">
@@ -30,4 +38,4 @@ export default function Dashboard() {
       </div>
     </div>
   )
-}
+} 

@@ -10,14 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import { Job } from '@/lib/types/shared'
 import { JobCard } from '@/components/JobCard'
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination"
+import { JobPagination } from '@/components/ui/JobPagination'
 
 interface JobListProps {
   jobs: Job[]
@@ -106,55 +99,10 @@ export default function JobList({ jobs, loading, onSelectJob, selectedJobId, tot
                 key={job.id}
                 job={job}
                 isSelected={selectedJobId === job.id}
-                onSelect={onSelectJob}
-                onUpdate={() => {
-                  console.log('Job updated:', job.id)
-                  // Refresh the jobs list if needed
-                }}
+                onSelect={() => onSelectJob(job)}
               />
             ))}
-
-            {!loading && totalJobs > jobsPerPage && (
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious 
-                      onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
-                      className={cn(
-                        "cursor-pointer",
-                        currentPage <= 1 && "pointer-events-none opacity-50"
-                      )}
-                    />
-                  </PaginationItem>
-                  
-                  {getPageNumbers().map((number, i) => (
-                    <PaginationItem key={i}>
-                      {number === '...' ? (
-                        <span className="px-4 py-2">{number}</span>
-                      ) : (
-                        <PaginationLink
-                          onClick={() => handlePageChange(Number(number))}
-                          isActive={currentPage === number}
-                          className="cursor-pointer"
-                        >
-                          {number}
-                        </PaginationLink>
-                      )}
-                    </PaginationItem>
-                  ))}
-
-                  <PaginationItem>
-                    <PaginationNext 
-                      onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
-                      className={cn(
-                        "cursor-pointer",
-                        currentPage >= totalPages && "pointer-events-none opacity-50"
-                      )}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            )}
+            <JobPagination />
           </>
         )}
       </div>

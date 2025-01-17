@@ -3,6 +3,16 @@
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { JobFilter as JobFilterType } from '@/lib/types/shared'
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { Filter } from 'lucide-react'
 
 export function JobFilter() {
   const router = useRouter()
@@ -29,51 +39,63 @@ export function JobFilter() {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-4 space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Search</label>
-          <input
-            type="text"
-            value={filters.searchQuery}
-            onChange={(e) => updateFilters({ searchQuery: e.target.value })}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-            placeholder="Search jobs..."
-          />
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm">
+          <Filter className="h-4 w-4 mr-2" />
+          Filter
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80">
+        <div className="grid gap-4">
+          <div className="space-y-2">
+            <h4 className="font-medium leading-none">Filters</h4>
+            <p className="text-sm text-muted-foreground">
+              Customize your job search results
+            </p>
+          </div>
+          <div className="grid gap-2">
+            <div className="grid gap-1">
+              <Label htmlFor="search">Search</Label>
+              <Input
+                id="search"
+                value={filters.searchQuery}
+                onChange={(e) => updateFilters({ searchQuery: e.target.value })}
+                placeholder="Search jobs..."
+              />
+            </div>
+            <div className="grid gap-1">
+              <Label htmlFor="location">Location</Label>
+              <Input
+                id="location"
+                value={filters.location}
+                onChange={(e) => updateFilters({ location: e.target.value })}
+                placeholder="Filter by location..."
+              />
+            </div>
+          </div>
+          <div className="grid gap-2">
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="showHidden" 
+                checked={filters.showHidden}
+                onCheckedChange={(checked) => 
+                  updateFilters({ showHidden: checked === true })}
+              />
+              <Label htmlFor="showHidden">Show Hidden</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="onlyStarred" 
+                checked={filters.onlyStarred}
+                onCheckedChange={(checked) => 
+                  updateFilters({ onlyStarred: checked === true })}
+              />
+              <Label htmlFor="onlyStarred">Only Starred</Label>
+            </div>
+          </div>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Location</label>
-          <input
-            type="text"
-            value={filters.location}
-            onChange={(e) => updateFilters({ location: e.target.value })}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-            placeholder="Filter by location..."
-          />
-        </div>
-      </div>
-      
-      <div className="flex space-x-4">
-        <label className="flex items-center">
-          <input
-            type="checkbox"
-            checked={filters.showHidden}
-            onChange={(e) => updateFilters({ showHidden: e.target.checked })}
-            className="rounded border-gray-300 text-blue-600"
-          />
-          <span className="ml-2">Show Hidden</span>
-        </label>
-        
-        <label className="flex items-center">
-          <input
-            type="checkbox"
-            checked={filters.onlyStarred}
-            onChange={(e) => updateFilters({ onlyStarred: e.target.checked })}
-            className="rounded border-gray-300 text-blue-600"
-          />
-          <span className="ml-2">Only Starred</span>
-        </label>
-      </div>
-    </div>
+      </PopoverContent>
+    </Popover>
   )
 } 
