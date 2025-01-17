@@ -43,13 +43,13 @@ export async function GET(request: NextRequest) {
       ...(location && {
         location: {
           contains: location,
-          mode: 'insensitive'
+          mode: 'insensitive' as const
         }
       }),
       ...(searchQuery && {
         OR: [
-          { title: { contains: searchQuery, mode: 'insensitive' } },
-          { description: { contains: searchQuery, mode: 'insensitive' } }
+          { title: { contains: searchQuery, mode: 'insensitive' as const } },
+          { description: { contains: searchQuery, mode: 'insensitive' as const } }
         ]
       }),
       ...(ranking && ranking !== 'all' && {
