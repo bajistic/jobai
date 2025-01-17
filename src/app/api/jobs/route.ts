@@ -16,8 +16,9 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') as JobStatus | undefined
     const location = searchParams.get('location')
     const searchQuery = searchParams.get('searchQuery')
+    const ranking = searchParams.get('ranking')
 
-    console.log('API Received params:', { onlyStarred, showHidden, status, page, pageSize, location, searchQuery })
+    console.log('API Received params:', { onlyStarred, showHidden, status, page, pageSize, location, searchQuery, ranking })
 
     const where = {
       ...(onlyStarred && {
@@ -50,6 +51,9 @@ export async function GET(request: NextRequest) {
           { title: { contains: searchQuery, mode: 'insensitive' } },
           { description: { contains: searchQuery, mode: 'insensitive' } }
         ]
+      }),
+      ...(ranking && ranking !== 'all' && {
+        ranking: ranking
       })
     }
 

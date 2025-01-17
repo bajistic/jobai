@@ -7,12 +7,18 @@ import { JobFilter as JobFilterType } from '@/lib/types/shared'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Filter } from 'lucide-react'
 
 export function JobFilter() {
@@ -21,35 +27,32 @@ export function JobFilter() {
   const { fetchJobs } = useJobs()
   
   const [filters, setFilters] = useState<JobFilterType>({
-    searchQuery: searchParams.get('searchQuery') || '',
     location: searchParams.get('location') || '',
-    showHidden: searchParams.get('showHidden') === 'true',
-    onlyStarred: searchParams.get('onlyStarred') === 'true',
+    ranking: searchParams.get('ranking') || '',
   })
 
   const [localFilters, setLocalFilters] = useState(filters)
 
   // Update local filters when URL params change
   useEffect(() => {
-    setLocalFilters({
-      searchQuery: searchParams.get('searchQuery') || '',
+    const newFilters = {
       location: searchParams.get('location') || '',
-      showHidden: searchParams.get('showHidden') === 'true',
-      onlyStarred: searchParams.get('onlyStarred') === 'true',
-    })
-  }, [searchParams])
+      ranking: searchParams.get('ranking') || '',
+    }
+    setLocalFilters(newFilters)
+    setFilters(newFilters)
+    
+    // Fetch jobs with current filters when component mounts or URL changes
+    fetchJobs(newFilters)
+  }, [searchParams, fetchJobs])
 
   const applyFilters = () => {
     const params = new URLSearchParams()
     
     // Only add non-empty values to params
     Object.entries(localFilters).forEach(([key, value]) => {
-      if (value) {
-        if (typeof value === 'boolean') {
-          params.set(key, 'true')
-        } else if (typeof value === 'string' && value.trim()) {
-          params.set(key, value.trim())
-        }
+      if (value && typeof value === 'string' && value.trim()) {
+        params.set(key, value.trim())
       }
     })
 
@@ -58,9 +61,6 @@ export function JobFilter() {
     if (currentPage) {
       params.set('page', currentPage)
     }
-
-    // Add pageSize
-    params.set('pageSize', '10')
 
     setFilters(localFilters)
     router.push(`?${params.toString()}`, { scroll: false })
@@ -89,15 +89,6 @@ export function JobFilter() {
           </div>
           <div className="grid gap-2">
             <div className="grid gap-1">
-              <Label htmlFor="search">Search</Label>
-              <Input
-                id="search"
-                value={localFilters.searchQuery}
-                onChange={(e) => setLocalFilters({ ...localFilters, searchQuery: e.target.value })}
-                placeholder="Search jobs..."
-              />
-            </div>
-            <div className="grid gap-1">
               <Label htmlFor="location">Location</Label>
               <Input
                 id="location"
@@ -106,25 +97,23 @@ export function JobFilter() {
                 placeholder="Filter by location..."
               />
             </div>
-          </div>
-          <div className="grid gap-2">
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="showHidden" 
-                checked={localFilters.showHidden}
-                onCheckedChange={(checked) => 
-                  setLocalFilters({ ...localFilters, showHidden: checked === true })}
-              />
-              <Label htmlFor="showHidden">Show Hidden</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="onlyStarred" 
-                checked={localFilters.onlyStarred}
-                onCheckedChange={(checked) => 
-                  setLocalFilters({ ...localFilters, onlyStarred: checked === true })}
-              />
-              <Label htmlFor="onlyStarred">Only Starred</Label>
+            <div className="grid gap-1">
+              <Label htmlFor="ranking">Ranking</Label>
+              <Select
+                value={localFilters.ranking}
+                onValueChange={(value) => setLocalFilters({ ...localFilters, ranking: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select ranking" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="bingo">Bingo</SelectItem>
+                  <SelectItem value="good">Good</SelectItem>
+                  <SelectItem value="okay">Okay</SelectItem>
+                  <SelectItem value="bad">Bad</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <Button onClick={applyFilters}>Apply Filters</Button>

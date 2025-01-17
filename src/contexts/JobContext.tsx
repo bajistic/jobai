@@ -28,6 +28,7 @@ interface JobFetchOptions {
   page?: number
   pageSize?: number
   location?: string
+  ranking?: string
 }
 
 const JobContext = createContext<JobContextType>({
@@ -68,6 +69,7 @@ export function JobProvider({ children }: { children: ReactNode }) {
       if (options.showHidden) params.set('showHidden', 'true')
       if (options.status) params.set('status', options.status)
       if (options.location) params.set('location', options.location)
+      if (options.ranking && options.ranking !== 'all') params.set('ranking', options.ranking)
       params.set('page', String(currentPage))
       params.set('pageSize', String(itemsPerPage))
 
@@ -85,7 +87,11 @@ export function JobProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const location = searchParams.get('location')
-    fetchJobs({ location: location || undefined })
+    const ranking = searchParams.get('ranking')
+    fetchJobs({ 
+      location: location || undefined,
+      ranking: ranking || undefined
+    })
   }, [currentPage, fetchJobs, searchParams])
 
   const handlePageChange = useCallback((page: number) => {
