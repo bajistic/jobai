@@ -41,10 +41,7 @@ export function JobFilter() {
     }
     setLocalFilters(newFilters)
     setFilters(newFilters)
-    
-    // Fetch jobs with current filters when component mounts or URL changes
-    fetchJobs(newFilters)
-  }, [searchParams, fetchJobs])
+  }, [searchParams])
 
   const applyFilters = () => {
     const params = new URLSearchParams()

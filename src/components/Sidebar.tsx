@@ -17,7 +17,8 @@ import {
   CheckCircle, 
   EyeOff, 
   Archive, 
-  ListFilter 
+  ListFilter,
+  User 
 } from 'lucide-react'
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -90,6 +91,15 @@ export default function Sidebar() {
               </Button>
             </CollapsibleContent>
           </Collapsible>
+
+          <div className="mt-auto pt-4 border-t">
+            <Button variant="ghost" className="w-full justify-start" asChild>
+              <Link href="/profile">
+                <User className="h-4 w-4 mr-2" />
+                <span className={cn(!isOpen && "hidden")}>Profile</span>
+              </Link>
+            </Button>
+          </div>
         </div>
       </ScrollArea>
     </div>
