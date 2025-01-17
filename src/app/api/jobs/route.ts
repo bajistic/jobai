@@ -14,6 +14,8 @@ export async function GET(request: NextRequest) {
     const onlyStarred = searchParams.get('onlyStarred') === 'true'
     const showHidden = searchParams.get('showHidden') === 'true'
     const status = searchParams.get('status')
+    const location = searchParams.get('location')
+    const searchQuery = searchParams.get('searchQuery')
 
     console.log('API Received params:', { onlyStarred, showHidden, status, page, pageSize })
 
@@ -36,6 +38,18 @@ export async function GET(request: NextRequest) {
       }),
       ...(status && { 
         status: status as JobStatus
+      }),
+      ...(location && {
+        location: {
+          contains: location,
+          mode: 'insensitive'
+        }
+      }),
+      ...(searchQuery && {
+        OR: [
+          { title: { contains: searchQuery, mode: 'insensitive' } },
+          { description: { contains: searchQuery, mode: 'insensitive' } }
+        ]
       })
     }
 
