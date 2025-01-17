@@ -11,6 +11,7 @@ export default function ProfilePage() {
     image: ''
   })
   const [isEditing, setIsEditing] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
     fetchProfile()
@@ -26,87 +27,133 @@ export default function ProfilePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const response = await fetch('/api/profile', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(profile)
-    })
+    setIsSaving(true)
+    try {
+      const response = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(profile)
+      })
 
-    if (response.ok) {
-      setIsEditing(false)
-      fetchProfile()
+      if (response.ok) {
+        setIsEditing(false)
+        fetchProfile()
+      }
+    } finally {
+      setIsSaving(false)
     }
   }
 
   if (!session) {
-    return <div>Please sign in to view your profile</div>
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="bg-white p-8 rounded-lg shadow-md">
+          <p className="text-gray-600">Please sign in to view your profile</p>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Profile</h1>
-      
-      {isEditing ? (
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block mb-2">Name</label>
-            <input
-              type="text"
-              value={profile.name}
-              onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-              className="w-full p-2 border rounded"
-            />
-          </div>
-          <div>
-            <label className="block mb-2">Image URL</label>
-            <input
-              type="text"
-              value={profile.image || ''}
-              onChange={(e) => setProfile({ ...profile, image: e.target.value })}
-              className="w-full p-2 border rounded"
-            />
-          </div>
-          <div className="flex gap-2">
+    <div className="min-h-screen bg-gray-50 py-12">
+      <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-sm p-8">
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Profile</h1>
+          {!isEditing && (
             <button
-              type="submit"
-              className="px-4 py-2 bg-blue-500 text-white rounded"
+              onClick={() => setIsEditing(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
             >
-              Save
+              Edit Profile
             </button>
-            <button
-              type="button"
-              onClick={() => setIsEditing(false)}
-              className="px-4 py-2 bg-gray-500 text-white rounded"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      ) : (
-        <div className="space-y-4">
-          <div>
-            {profile.image && (
-              <img
-                src={profile.image}
-                alt={profile.name}
-                className="w-20 h-20 rounded-full"
-              />
-            )}
-          </div>
-          <div>
-            <strong>Name:</strong> {profile.name}
-          </div>
-          <div>
-            <strong>Email:</strong> {profile.email}
-          </div>
-          <button
-            onClick={() => setIsEditing(true)}
-            className="px-4 py-2 bg-blue-500 text-white rounded"
-          >
-            Edit Profile
-          </button>
+          )}
         </div>
-      )}
+        
+        {isEditing ? (
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Profile Picture
+                </label>
+                <input
+                  type="text"
+                  value={profile.image || ''}
+                  onChange={(e) => setProfile({ ...profile, image: e.target.value })}
+                  className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter image URL"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Name
+                </label>
+                <input
+                  type="text"
+                  value={profile.name || ''}
+                  onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                  className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter your name"
+                />
+              </div>
+            </div>
+            
+            <div className="flex gap-3 pt-4">
+              <button
+                type="submit"
+                disabled={isSaving}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:bg-blue-400"
+              >
+                {isSaving ? 'Saving...' : 'Save Changes'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsEditing(false)}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        ) : (
+          <div className="space-y-6">
+            <div className="flex items-center space-x-6">
+              {profile.image ? (
+                <img
+                  src={profile.image}
+                  alt={profile.name || 'Profile picture'}
+                  className="w-24 h-24 rounded-full object-cover border-2 border-gray-200"
+                />
+              ) : (
+                <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center">
+                  <span className="text-gray-500 text-2xl">
+                    {profile.name?.[0]?.toUpperCase() || '?'}
+                  </span>
+                </div>
+              )}
+              <div>
+                <h2 className="text-2xl font-semibold text-gray-900">
+                  {profile.name || 'No name set'}
+                </h2>
+                <p className="text-gray-500">{profile.email}</p>
+              </div>
+            </div>
+            
+            <div className="border-t pt-6 mt-6">
+              <dl className="grid grid-cols-1 gap-4">
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Email</dt>
+                  <dd className="mt-1 text-sm text-gray-900">{profile.email}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Name</dt>
+                  <dd className="mt-1 text-sm text-gray-900">{profile.name || 'Not set'}</dd>
+                </div>
+              </dl>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 } 
