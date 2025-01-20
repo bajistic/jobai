@@ -52,6 +52,6 @@ export interface CoverLetter {
   id: number;
   jobId: number;
   content: string;
-  googleDocsUrl?: string;
-  createdAt: Date;
+  docs_url?: string;
+  created_at: Date;
 } 

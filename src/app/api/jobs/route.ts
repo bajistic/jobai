@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { CoverLetter, Job } from '@/lib/types/shared'
+import { CoverLetter, Job, JobPreference } from '@/lib/types/shared'
 
 // Define the status type explicitly
 type JobStatus = 'new' | 'applied' | 'rejected' | 'interview'
@@ -66,8 +66,8 @@ export async function GET(request: NextRequest) {
         skip: (page - 1) * pageSize,
         take: pageSize,
         include: { 
-          cover_letter: true,
-          preferences: {
+          cover_letters: true,
+          job_preferences: {
             where: {
               user_id: 1
             }
@@ -77,21 +77,21 @@ export async function GET(request: NextRequest) {
       prisma.jobs.count({ where })
     ])
 
-    const serializeJob = (job: any) => ({
+    const serializeJob = (job: Job) => ({
       ...job,
       id: Number(job.id),
-      preferences: job.preferences?.map((p: any) => ({
+      preferences: job.preferences?.map((p: JobPreference) => ({
         ...p,
         id: Number(p.id),
         job_id: Number(p.job_id),
         user_id: Number(p.user_id)
       })),
-      isStarred: job.preferences?.some((p: any) => p.is_starred) || false,
-      isHidden: job.preferences?.some((p: any) => p.is_hidden) || false,
-      cover_letter: job.cover_letter?.map((cl: any) => ({
+      isStarred: job.preferences?.some((p: JobPreference) => p.is_starred) || false,
+      isHidden: job.preferences?.some((p: JobPreference) => p.is_hidden) || false,
+      cover_letters: job.cover_letter?.map((cl: CoverLetter) => ({
         ...cl,
         id: Number(cl.id),
-        job_id: cl.job_id ? Number(cl.job_id) : null
+        jobId: cl.jobId ? Number(cl.jobId) : null
       }))
     })
 

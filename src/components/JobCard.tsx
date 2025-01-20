@@ -17,6 +17,7 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { MoreVertical, BookmarkIcon, EyeOff, FileText, PenSquare } from 'lucide-react'
 import { cn } from "@/lib/utils"
+import { GenerateLetterDialog } from '@/components/generate-letter-dialog'
 
 interface JobCardProps {
   job: Job
@@ -27,6 +28,7 @@ interface JobCardProps {
 
 export function JobCard({ job, onUpdate, isSelected, onSelect }: JobCardProps) {
   const [showNotesDialog, setShowNotesDialog] = useState(false)
+  const [showLetterDialog, setShowLetterDialog] = useState(false)
   const [notes, setNotes] = useState(job.notes || '')
   const [isSaving, setIsSaving] = useState(false)
 
@@ -140,14 +142,10 @@ export function JobCard({ job, onUpdate, isSelected, onSelect }: JobCardProps) {
                 <PenSquare className="mr-2 h-4 w-4" />
                 <span>Notes</span>
               </DropdownMenuItem>
-              {!job.coverLetter && (
-                <DropdownMenuItem asChild>
-                  <Link href={`/jobs/${job.id}/generate`}>
-                    <FileText className="mr-2 h-4 w-4" />
-                    <span>Generate Letter</span>
-                  </Link>
-                </DropdownMenuItem>
-              )}
+              <DropdownMenuItem onClick={() => setShowLetterDialog(true)}>
+                <FileText className="mr-2 h-4 w-4" />
+                <span>Generate Letter</span>
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </CardHeader>
@@ -204,6 +202,12 @@ export function JobCard({ job, onUpdate, isSelected, onSelect }: JobCardProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <GenerateLetterDialog
+        open={showLetterDialog}
+        onOpenChange={setShowLetterDialog}
+        job={job}
+      />
     </>
   )
 } 
