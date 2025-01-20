@@ -44,7 +44,7 @@ const JobContext = createContext<JobContextType>({
     hasNextPage: false,
     hasPrevPage: false
   },
-  fetchJobs: async (_options?: JobFetchOptions) => undefined,
+  fetchJobs: async (options?: JobFetchOptions) => undefined,
   setSelectedJobId: () => {},
 })
 

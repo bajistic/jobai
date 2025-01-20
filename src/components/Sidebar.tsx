@@ -20,15 +20,19 @@ import {
   Archive, 
   ListFilter,
   User,
-  X
+  X,
+  Download
 } from 'lucide-react'
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useSession } from 'next-auth/react'
 
 export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(true)
   const [jobsOpen, setJobsOpen] = useState(true)
   const pathname = usePathname()
+  const { data: session } = useSession()
+  console.log(session?.user?.id)
 
   return (
     <div className={cn(
@@ -97,6 +101,15 @@ export default function Sidebar() {
               </Button>
             </CollapsibleContent>
           </Collapsible>
+
+          {session?.user?.email === "baji@gmail.com" && (
+            <Button variant="ghost" className="w-full justify-start" asChild>
+              <Link href="/scrape">
+                <Download className="h-4 w-4 mr-2" />
+                <span className={cn(!isOpen && "hidden")}>Scrape Jobs</span>
+              </Link>
+            </Button>
+          )}
 
           <div className="mt-auto pt-4 border-t">
             <Button variant="ghost" className="w-full justify-start" asChild>

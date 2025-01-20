@@ -1,35 +1,75 @@
-import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { NextRequest, NextResponse } from 'next/server';
+import { OpenAIService } from '@/services/openai.service';
+import { prisma } from '@/lib/prisma';
+import { Job } from '@/lib/types/shared';
 
 export async function POST(
-  request: Request,
-  { params }: { params: { id: string } }
+  _req: NextRequest,
+  context: { params: { id: string } }
 ) {
+  const { params } = context;
+  const jobId = Number(params.id);
+  
   try {
     const job = await prisma.jobs.findUnique({
-      where: { id: parseInt(params.id) }
-    })
-    
+      where: { id: jobId },
+      include: { job_preferences: true }
+    });
+
     if (!job) {
-      return NextResponse.json({ error: 'Job not found' }, { status: 404 })
+      return NextResponse.json(
+        { success: false, error: 'Job not found' },
+        { status: 404 }
+      );
     }
+    
+    const openAIService = OpenAIService.getInstance();
+    const { content, docs_url } = await openAIService.generateCoverLetter(job as unknown as Job);
 
-    // TODO: Add your cover letter generation logic here
-    const content = `Generated cover letter for ${job.title} at ${job.company}`
-
-    const coverLetter = await prisma.cover_letters.create({
+    // Save to database
+    await prisma.cover_letters.create({
       data: {
-        job_id: job.id,
+        job_id: jobId,
         content,
+        docs_url,
       }
-    })
+    });
 
-    return NextResponse.json(coverLetter)
+    return NextResponse.json({ 
+      success: true, 
+      content,
+      docs_url
+    });
   } catch (error) {
-    console.error('Error generating cover letter:', error)
+    console.error('Failed to generate cover letter:', error);
     return NextResponse.json(
-      { error: 'Failed to generate cover letter' },
+      { success: false, error: 'Failed to generate cover letter' },
       { status: 500 }
-    )
+    );
+  }
+}
+
+export async function GET(
+  _req: NextRequest,
+  context: { params: { id: string } }
+) {
+  const { params } = context;
+  const jobId = Number(params.id);
+  try {
+    const letter = await prisma.cover_letters.findFirst({
+      where: { job_id: jobId },
+      orderBy: { created_at: 'desc' },
+    });
+
+    return NextResponse.json({
+      success: true,
+      letter,
+    });
+  } catch (error) {
+    console.error('Failed to fetch cover letter:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to fetch cover letter' },
+      { status: 500 }
+    );
   }
 } 

@@ -1,24 +1,23 @@
-import { prisma } from '@/lib/prisma'
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server';
+import { ScraperService } from '@/services/scraper.service';
 
 export async function POST(request: NextRequest) {
   try {
-    const { url } = await request.json()
+    const data = await request.json();
+    const pageNumber = Number(data.pageNumber) || 1; // Default to 1 if not provided
     
-    // TODO: Add your scraping logic here
-    const jobData = { title: 'Scraped Job', company: 'Company', /* ... */ }
-
-    const job = await prisma.jobs.create({
-      data: jobData
-    })
-
-    return NextResponse.json(job)
+    const scraper = ScraperService.getInstance();
+    await scraper.startScraping(pageNumber);
+    
+    return NextResponse.json({ 
+      success: true, 
+      message: `Scraping completed successfully for page ${pageNumber}` 
+    });
   } catch (error) {
-    console.error('Error scraping job:', error)
+    console.error('Scraping error:', error);
     return NextResponse.json(
-      { error: 'Failed to scrape job' },
+      { error: 'Failed to scrape jobs' },
       { status: 500 }
-    )
+    );
   }
 } 

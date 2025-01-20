@@ -42,16 +42,17 @@ export interface JobPreference {
   id: number;
   job_id: number;
   user_id: number;
-  is_hidden: boolean;
-  is_starred: boolean;
+  is_hidden?: boolean;
+  is_starred?: boolean;
   created_at: Date;
   updated_at: Date;
+  notes?: string;
 }
 
 export interface CoverLetter {
   id: number;
   jobId: number;
   content: string;
-  googleDocsUrl?: string;
-  createdAt: Date;
+  docs_url?: string;
+  created_at: Date;
 } 
