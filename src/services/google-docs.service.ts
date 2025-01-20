@@ -46,51 +46,55 @@ export class GoogleDocsService {
 
       const documentId = copyResponse.data.id!;
 
-      // Get today's date in Swiss German format
-      const today = new Date().toLocaleDateString('de-CH', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-      });
-
-      // Define placeholders and their values
-      const placeholders = {
-        '{{ADDRESS}}': job.address || '',
-        '{{DATE}}': today,
-        '{{TITLE}}': job.title || '',
-        '{{GREETING}}': 'Sehr geehrte Damen und Herren',
-        '{{CONTENT}}': content,
-        '{{SALUTE}}': 'Freundliche Grüsse',
-        '{{COMPANY}}': job.company || '',
-      };
-
-      // Create batch update requests for each placeholder
-      const requests = Object.entries(placeholders).map(([placeholder, value]) => ({
-        replaceAllText: {
-          containsText: { text: placeholder, matchCase: true },
-          replaceText: value
-        }
-      }));
-
-      // Update all placeholders
-      await this.docsClient.documents.batchUpdate({
-        documentId,
-        requestBody: { requests },
-      });
-
-      // Make the document publicly accessible via link
-      await this.driveClient.permissions.create({
-        fileId: documentId,
-        requestBody: {
-          role: 'reader',
-          type: 'anyone',
-        },
-      });
+      await this.setPermissions(documentId);
+      await this.updatePlaceholders(documentId, job, content);
 
       return `https://docs.google.com/document/d/${documentId}/edit`;
     } catch (error) {
-      console.error('Failed to create Google Doc:', error);
+      console.error('Error creating document:', error);
       throw error;
     }
+  }
+
+  private async setPermissions(documentId: string) {
+    await this.driveClient.permissions.create({
+      fileId: documentId,
+      requestBody: {
+        role: 'writer',
+        type: 'user',
+        emailAddress: config.googleServiceAccount.userEmail
+      },
+      supportsAllDrives: true
+    });
+  }
+
+  private async updatePlaceholders(documentId: string, job: Job, content: string) {
+    const today = new Date().toLocaleDateString('de-CH', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+
+    const placeholders = {
+      '{{ADDRESS}}': job.address || '',
+      '{{DATE}}': today,
+      '{{TITLE}}': job.title,
+      '{{GREETING}}': 'Sehr geehrte Damen und Herren',
+      '{{CONTENT}}': content,
+      '{{SALUTE}}': 'Freundliche Grüsse',
+      '{{COMPANY}}': job.company,
+    };
+
+    const requests = Object.entries(placeholders).map(([placeholder, value]) => ({
+      replaceAllText: {
+        containsText: { text: placeholder, matchCase: true },
+        replaceText: value
+      }
+    }));
+
+    await this.docsClient.documents.batchUpdate({
+      documentId,
+      requestBody: { requests }
+    });
   }
 } 

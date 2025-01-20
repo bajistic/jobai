@@ -5,13 +5,15 @@ import { Job } from '@/lib/types/shared';
 
 export async function POST(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
+  const { params } = context;
+  const jobId = Number(params.id);
+  
   try {
-    const jobId = Number(params.id);
     const job = await prisma.jobs.findUnique({
       where: { id: jobId },
-      include: { job_preferences: true, cover_letters: true }
+      include: { job_preferences: true }
     });
 
     if (!job) {
@@ -21,23 +23,13 @@ export async function POST(
       );
     }
     
-    // Convert bigint to number
-    const jobData = {
-      ...job,
-      id: Number(job.id),
-      preferences: job.job_preferences.map(p => ({
-        ...p,
-        job_id: Number(p.job_id)
-      }))
-    };
-
     const openAIService = OpenAIService.getInstance();
-    const { content, docs_url } = await openAIService.generateCoverLetter(jobData as Job);
+    const { content, docs_url } = await openAIService.generateCoverLetter(job as unknown as Job);
 
     // Save to database
     await prisma.cover_letters.create({
       data: {
-        job_id: job.id,
+        job_id: jobId,
         content,
         docs_url,
       }
@@ -59,10 +51,10 @@ export async function POST(
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
+  const { params } = context;
   const jobId = Number(params.id);
-  
   try {
     const letter = await prisma.cover_letters.findFirst({
       where: { job_id: jobId },

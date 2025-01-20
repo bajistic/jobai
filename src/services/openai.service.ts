@@ -155,7 +155,7 @@ export class OpenAIService {
 
       // Create Google Doc
       const googleDocsService = GoogleDocsService.getInstance();
-      const docs_url = await googleDocsService.createCoverLetterDoc(content.text.value, job.title);
+      const docs_url = await googleDocsService.createCoverLetterDoc(content.text.value, job as unknown as Job);
 
       return { content: content.text.value, docs_url: docs_url };
     } catch (error) {
