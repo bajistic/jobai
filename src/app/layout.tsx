@@ -9,6 +9,7 @@ import "./globals.css"
 import { Providers } from '@/app/providers'
 import { usePathname } from 'next/navigation'
 import { JobProvider } from '@/contexts/JobContext'
+import { ThemeProvider } from '@/components/theme-provider'
 
 const Header = dynamic(() => import('@/components/Header'), { ssr: false })
 const Sidebar = dynamic(() => import('@/components/Sidebar'), { ssr: false })
@@ -59,15 +60,21 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <JobProvider>
-          <Providers>
+        <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange>
+          <JobProvider>
+            <Providers>
             <RootLayoutContent>
               {children}
             </RootLayoutContent>
-          </Providers>
-        </JobProvider>
+            </Providers>
+          </JobProvider>
+        </ThemeProvider>
       </body>
     </html>
   )
