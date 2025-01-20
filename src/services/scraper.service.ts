@@ -47,7 +47,7 @@ export class ScraperService {
   }
 
   private async processJob(job: Job) {
-    const response = await OpenAIService.rankJob(job);
+    const response = await this.openai.rankJob(job as unknown as Job);
     job.ranking = response.ranking;
     job.canton = response.canton;
 

@@ -15,6 +15,7 @@ interface ScrapeStatus {
 export function ScrapingTrigger() {
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState<ScrapeStatus | null>(null);
+  const [pageNumber, setPageNumber] = useState(1);
 
   const fetchStatus = async () => {
     try {
@@ -38,6 +39,10 @@ export function ScrapingTrigger() {
     try {
       const response = await fetch('/api/scraper', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ pageNumber }),
       });
       
       if (!response.ok) throw new Error('Failed to start scraping');
@@ -53,19 +58,28 @@ export function ScrapingTrigger() {
 
   return (
     <div className="space-y-2">
-      <Button 
-        onClick={startScraping} 
-        disabled={isLoading || status?.isRunning}
-      >
-        {status?.isRunning ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Scraping Page {status.currentPage}...
-          </>
-        ) : (
-          'Start Scraping'
-        )}
-      </Button>
+      <div className="flex gap-2 items-center">
+        <input
+          type="number"
+          min="1"
+          value={pageNumber}
+          onChange={(e) => setPageNumber(Number(e.target.value))}
+          className="w-20 px-2 py-1 border rounded"
+        />
+        <Button 
+          onClick={startScraping} 
+          disabled={isLoading || status?.isRunning}
+        >
+          {status?.isRunning ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Scraping Page {status.currentPage}...
+            </>
+          ) : (
+            'Start Scraping'
+          )}
+        </Button>
+      </div>
       
       {status && (
         <div className="text-sm text-muted-foreground">
