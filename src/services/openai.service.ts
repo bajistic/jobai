@@ -124,28 +124,28 @@ export class OpenAIService {
 
   public async generateCoverLetter(job: Job): Promise<{ content: string; docs_url: string }> {
     try {
-      // Create thread
+      console.log('Creating thread...');
       const thread = await this.openai.beta.threads.create();
 
-      // Add message to thread
+      console.log('Adding message to thread...');
       await this.openai.beta.threads.messages.create(thread.id, {
         role: "user",
         content: `Inserat: ${job.description}\nAnmerkungen: ${job.preferences?.notes || ''}`
       });
 
-      // Start assistant run
+      console.log('Starting assistant run...');
       const run = await this.openai.beta.threads.runs.create(thread.id, {
         assistant_id: ASSISTANT_ID,
       });
 
-      // Wait for completion
+      console.log('Waiting for completion...');
       const runStatus = await this.waitForCompletion(thread.id, run.id);
 
       if (runStatus.status !== 'completed') {
         throw new Error('Generation timeout or failed');
       }
 
-      // Get response
+      console.log('Retrieving response...');
       const messages = await this.openai.beta.threads.messages.list(thread.id);
       const content = messages.data[0].content[0];
       
@@ -153,11 +153,12 @@ export class OpenAIService {
         throw new Error('Unexpected response type');
       }
 
-      // Create Google Doc
+      console.log('Creating Google Doc...');
       const googleDocsService = GoogleDocsService.getInstance();
-      const docs_url = await googleDocsService.createCoverLetterDoc(content.text.value, job as unknown as Job);
+      const docs_url = await googleDocsService.createCoverLetterDoc(content.text.value, job);
 
-      return { content: content.text.value, docs_url: docs_url };
+      console.log('Cover letter generation completed successfully');
+      return { content: content.text.value, docs_url };
     } catch (error) {
       console.error('Cover letter generation failed:', error);
       throw error;
@@ -169,9 +170,15 @@ export class OpenAIService {
     let runStatus = await this.openai.beta.threads.runs.retrieve(threadId, runId);
 
     while (runStatus.status !== 'completed' && attempts < MAX_COMPLETION_ATTEMPTS) {
+      console.log(`Status: ${runStatus.status}, attempt ${attempts + 1}/${MAX_COMPLETION_ATTEMPTS}`);
       await new Promise(resolve => setTimeout(resolve, COMPLETION_CHECK_INTERVAL));
       runStatus = await this.openai.beta.threads.runs.retrieve(threadId, runId);
       attempts++;
+    }
+
+    if (attempts >= MAX_COMPLETION_ATTEMPTS) {
+      console.error('Generation timeout reached');
+      throw new Error('Generation timeout');
     }
 
     return runStatus;

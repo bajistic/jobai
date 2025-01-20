@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, FileText, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { Job } from '@/lib/types/shared';
+import { Progress } from "@/components/ui/progress";
 
 interface GenerateLetterDialogProps {
   open: boolean;
@@ -25,6 +26,8 @@ export function GenerateLetterDialog({ open, onOpenChange, job }: GenerateLetter
   const [isGenerating, setIsGenerating] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [letter, setLetter] = useState<CoverLetter | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [progressStatus, setProgressStatus] = useState('');
 
   useEffect(() => {
     if (open && job) {
@@ -55,7 +58,20 @@ export function GenerateLetterDialog({ open, onOpenChange, job }: GenerateLetter
     if (!job) return;
     
     setIsGenerating(true);
+    setProgress(0);
     try {
+      const eventSource = new EventSource(`/api/jobs/${job.id}/cover-letter/stream`);
+      
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        setProgress(data.progress);
+        setProgressStatus(data.status);
+      };
+
+      eventSource.onerror = () => {
+        eventSource.close();
+      };
+
       const response = await fetch(`/api/jobs/${job.id}/cover-letter`, {
         method: 'POST'
       });
@@ -63,7 +79,7 @@ export function GenerateLetterDialog({ open, onOpenChange, job }: GenerateLetter
       const data = await response.json();
       
       if (data.success) {
-        await fetchLatestLetter(); // Refresh after generating
+        await fetchLatestLetter();
         toast.success('Cover letter generated successfully!');
       } else {
         toast.error('Failed to generate cover letter');
@@ -73,6 +89,8 @@ export function GenerateLetterDialog({ open, onOpenChange, job }: GenerateLetter
       toast.error('Failed to generate cover letter');
     } finally {
       setIsGenerating(false);
+      setProgress(0);
+      setProgressStatus('');
     }
   };
 
@@ -83,6 +101,12 @@ export function GenerateLetterDialog({ open, onOpenChange, job }: GenerateLetter
           <DialogTitle>Cover Letter</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
+          {isGenerating && (
+            <div className="space-y-2">
+              <Progress value={progress} />
+              <p className="text-sm text-muted-foreground text-center">{progressStatus}</p>
+            </div>
+          )}
           <div className="flex justify-end">
             <Button
               onClick={handleGenerate}
