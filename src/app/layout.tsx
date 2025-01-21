@@ -19,7 +19,6 @@ const inter = Inter({ subsets: ["latin"] });
 function RootLayoutContent({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession()
   const pathname = usePathname()
-  const [showJobList, setShowJobList] = useState(true)
 
   // Don't check auth for auth-related pages
   if (pathname === '/auth/signin' || pathname === '/auth/signup') {
@@ -39,10 +38,7 @@ function RootLayoutContent({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
       <div className="flex flex-col flex-1 overflow-hidden">
-        <Header 
-          onToggleJobList={() => setShowJobList(!showJobList)} 
-          showJobList={showJobList}
-        />
+        <Header />
         <main className="flex-1">
           {children}
         </main>

@@ -26,7 +26,10 @@ export default function JobsPage() {
         />
       </div>
       <div className="flex-1">
-        <JobPreview selectedJob={jobs.find(job => job.id === selectedJobId) || null} />
+        <JobPreview 
+          selectedJob={jobs.find(job => job.id === selectedJobId) || null}
+          onBack={() => setSelectedJobId(null)}
+        />
       </div>
     </div>
   )

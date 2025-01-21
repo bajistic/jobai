@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import {
   Collapsible,
   CollapsibleContent,
@@ -17,20 +16,17 @@ import {
   BookmarkIcon, 
   CheckCircle, 
   EyeOff, 
-  Archive, 
   ListFilter,
   User,
   X,
   Download
 } from 'lucide-react'
 import Link from "next/link"
-import { usePathname } from "next/navigation"
 import { useSession } from 'next-auth/react'
 
 export default function Sidebar() {
-  const [isOpen, setIsOpen] = useState(true)
+  const [isOpen, setIsOpen] = useState(false)
   const [jobsOpen, setJobsOpen] = useState(true)
-  const pathname = usePathname()
   const { data: session } = useSession()
 
   return (

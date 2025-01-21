@@ -26,7 +26,10 @@ export default function Dashboard() {
         />
       </div>
       <div className={`flex-1 ${selectedJobId ? 'block' : 'hidden lg:block'}`}>
-        <JobPreview selectedJob={jobs.find(job => job.id === selectedJobId) || null} />
+        <JobPreview 
+          selectedJob={jobs.find(job => job.id === selectedJobId) || null} 
+          onBack={() => setSelectedJobId(null)}
+        />
       </div>
     </div>
   )
