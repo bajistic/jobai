@@ -93,12 +93,12 @@ export default function Sidebar() {
                   <span>Hidden Jobs</span>
                 </Link>
               </Button>
-              <Button variant="ghost" className="w-full justify-start" asChild>
+{/*               <Button variant="ghost" className="w-full justify-start" asChild>
                 <Link href="/jobs/archived">
                   <Archive className="h-4 w-4 mr-2" />
                   <span>Archived Jobs</span>
                 </Link>
-              </Button>
+              </Button> */}
             </CollapsibleContent>
           </Collapsible>
 

@@ -85,7 +85,7 @@ export function JobProvider({ children }: { children: ReactNode }) {
     }
   }, [currentPage])
 
-  useEffect(() => {
+/*   useEffect(() => {
     const location = searchParams.get('location')
     const ranking = searchParams.get('ranking')
     const status = searchParams.get('status')
@@ -103,7 +103,7 @@ export function JobProvider({ children }: { children: ReactNode }) {
     }, 100)
 
     return () => clearTimeout(timeoutId)
-  }, [searchParams, fetchJobs])
+  }, [searchParams, fetchJobs]) */
 
   const handlePageChange = useCallback((page: number) => {
     const params = new URLSearchParams(searchParams.toString())
