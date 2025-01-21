@@ -1,7 +1,5 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { NextResponse, NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { CoverLetter, Job, JobPreference } from '@/lib/types/shared'
 import { auth } from '@/lib/auth'
 
 // Define the status type explicitly
@@ -14,7 +12,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const userId = session.user.id;
-    console.log('User ID:', userId)
 
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
@@ -30,7 +27,7 @@ export async function GET(request: NextRequest) {
 
     const where = {
       ...(onlyStarred && {
-        preferences: {
+        job_preferences: {
           some: {
             is_starred: true,
             user_id: userId
@@ -38,7 +35,7 @@ export async function GET(request: NextRequest) {
         }
       }),
       ...(showHidden && {
-        preferences: {
+        job_preferences: {
           some: {
             is_hidden: true,
             user_id: userId

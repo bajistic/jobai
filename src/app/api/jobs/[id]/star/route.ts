@@ -1,13 +1,17 @@
 import { NextResponse, NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-
+import { auth } from '@/lib/auth'
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const userId = session.user.id;
     const jobId = parseInt(params.id)
-    const userId = 1 // TODO: Get from auth session
     const { isStarred } = await request.json()
 
     const updatedPreference = await prisma.job_preferences.upsert({
@@ -27,13 +31,7 @@ export async function PATCH(
       },
     })
 
-    // Convert BigInt to Number before serializing
-    const serializedPreference = {
-      ...updatedPreference,
-      job_id: Number(updatedPreference.job_id)
-    }
-
-    return NextResponse.json(serializedPreference)
+    return NextResponse.json(updatedPreference)
   } catch (error) {
     console.error('Error updating star status:', error)
     return NextResponse.json(
