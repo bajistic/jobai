@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import ReactMarkdown from 'react-markdown'
 import { Job } from "@/lib/types/shared"
+import { JobStatusButton } from "./JobStatusButton"
 
 interface JobPreviewProps {
   selectedJob: Job | null
@@ -28,6 +29,7 @@ export default function JobPreview({ selectedJob }: JobPreviewProps) {
             <CardTitle>
               <h2 className="text-2xl font-bold">{selectedJob.title || 'No Title'}</h2>
               <p className="text-lg text-muted-foreground mt-1">{selectedJob.company || 'No Company'}</p>
+              <JobStatusButton jobId={selectedJob.id} currentStatus={selectedJob.status} />
             </CardTitle>
             <p className="text-muted-foreground">
               {selectedJob.location || 'No Location'} • {selectedJob.status || 'New'}

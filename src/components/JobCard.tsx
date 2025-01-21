@@ -135,7 +135,11 @@ export function JobCard({ job, onUpdate, isSelected, onSelect }: JobCardProps) {
           <p className="text-sm text-muted-foreground">{job.location}</p>
           <div className="flex gap-2 mt-2">
             <p className="text-sm text-muted-foreground">
-              {job.published ? new Date(job.published).toLocaleDateString('de-CH') : 'No date'}
+              {job.published ? new Date(job.published).toLocaleDateString('de-CH', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+              }) : 'No date'}
             </p>
             {job.isStarred && (
               <Badge 

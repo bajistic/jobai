@@ -1,7 +1,7 @@
 import { chromium, Page } from 'playwright';
 import TurndownService from 'turndown';
 import { prisma } from '@/lib/prisma';
-import { Job } from '@/lib/types/shared';
+import { Job, JobStatus } from '@/lib/types/shared';
 import { OpenAIService } from './openai.service';
 
 interface ScrapeStatus {
@@ -59,7 +59,7 @@ export class ScraperService {
         : job.ranking === "okay"
         ? "👍"
         : "👎";
-    console.log(`${emoji} ${job.title} (${job.published.toLocaleDateString()})`);
+    console.log(`${emoji} ${job.title} (${job.published ? job.published.toLocaleDateString() : 'No date'})`);
 
     await this.saveJob(job);
   }
@@ -243,7 +243,7 @@ export class ScraperService {
       description: jobContentMD,
       ranking: "bad", // Default ranking
       categories: jobCategories,
-      status: "new",
+      status: JobStatus.NEW,
     };
     // Implementation of job details scraping
     // This would contain the logic from your test file

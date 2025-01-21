@@ -1,9 +1,7 @@
 import { NextResponse, NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
-
-// Define the status type explicitly
-type JobStatus = 'new' | 'applied' | 'rejected' | 'interview'
+import { job_status } from '@prisma/client'
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,7 +16,7 @@ export async function GET(request: NextRequest) {
     const pageSize = parseInt(searchParams.get('pageSize') || '20')
     const onlyStarred = searchParams.get('onlyStarred') === 'true'
     const showHidden = searchParams.get('showHidden') === 'true'
-    const status = searchParams.get('status') as JobStatus | undefined
+    const status = searchParams.get('status') as job_status | undefined
     const location = searchParams.get('location')
     const searchQuery = searchParams.get('searchQuery')
     const ranking = searchParams.get('ranking')
@@ -26,6 +24,14 @@ export async function GET(request: NextRequest) {
     console.log('API Received params:', { onlyStarred, showHidden, status, page, pageSize, location, searchQuery, ranking })
 
     const where = {
+      ...(status && {
+        job_preferences: {
+          some: {
+            status: status as job_status,
+            user_id: userId
+          }
+        }
+      }),
       ...(onlyStarred && {
         job_preferences: {
           some: {
@@ -42,9 +48,6 @@ export async function GET(request: NextRequest) {
           }
         }
       }),
-      ...(status && { 
-        status: status as JobStatus
-      }),
       ...(location && {
         location: {
           contains: location,
@@ -59,7 +62,7 @@ export async function GET(request: NextRequest) {
       }),
       ...(ranking && ranking !== 'all' && {
         ranking: ranking
-      })
+      }),
     }
 
     console.log('Prisma where clause:', JSON.stringify(where, null, 2))
@@ -86,6 +89,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       jobs: jobs.map(job => ({
         ...job,
+        status: job.job_preferences[0]?.status as job_status || null,
         isStarred: job.job_preferences?.some(p => p.is_starred) || false,
         isHidden: job.job_preferences?.some(p => p.is_hidden) || false
       })),

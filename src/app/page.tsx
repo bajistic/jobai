@@ -16,7 +16,7 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-1 overflow-hidden">
-      <div className="w-1/3 border-r">
+      <div className={`w-full lg:w-1/3 border-r ${selectedJobId ? 'hidden lg:block' : 'block'}`}>
         <JobList 
           jobs={jobs} 
           loading={loading}
@@ -25,7 +25,7 @@ export default function Dashboard() {
           totalJobs={totalJobs}
         />
       </div>
-      <div className="flex-1">
+      <div className={`flex-1 ${selectedJobId ? 'block' : 'hidden lg:block'}`}>
         <JobPreview selectedJob={jobs.find(job => job.id === selectedJobId) || null} />
       </div>
     </div>

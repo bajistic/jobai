@@ -19,6 +19,7 @@ interface JobContextType {
   }
   fetchJobs: (options?: JobFetchOptions) => Promise<void>
   setSelectedJobId: (id: number | null) => void
+  updateJobStatus: (jobId: number, status: 'new' | 'applied' | 'rejected' | 'interview') => Promise<void>
 }
 
 interface JobFetchOptions {
@@ -46,6 +47,7 @@ const JobContext = createContext<JobContextType>({
   },
   fetchJobs: async (options?: JobFetchOptions) => undefined,
   setSelectedJobId: () => {},
+  updateJobStatus: async () => {},
 })
 
 export function JobProvider({ children }: { children: ReactNode }) {
@@ -131,6 +133,27 @@ export function JobProvider({ children }: { children: ReactNode }) {
     hasPrevPage: currentPage > 1
   }
 
+  const updateJobStatus = useCallback(async (jobId: number, status: 'new' | 'applied' | 'rejected' | 'interview') => {
+    try {
+      const response = await fetch(`/api/jobs/${jobId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update job status');
+      }
+
+      // Refetch jobs to update the list
+      await fetchJobs();
+    } catch (error) {
+      console.error('Error updating job status:', error);
+    }
+  }, [fetchJobs]);
+
   return (
     <JobContext.Provider value={{
       jobs,
@@ -140,6 +163,7 @@ export function JobProvider({ children }: { children: ReactNode }) {
       pagination,
       fetchJobs,
       setSelectedJobId,
+      updateJobStatus,
     }}>
       {children}
     </JobContext.Provider>

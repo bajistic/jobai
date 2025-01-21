@@ -4,7 +4,8 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET() {
   try {
-    const { userId } = await auth()
+    const session = await auth()
+    const userId = session?.user?.id;
     console.log('Auth userId:', userId)
 
     if (!userId) {
@@ -31,7 +32,8 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   try {
-    const { userId } = await auth()
+    const session = await auth()
+    const userId = session?.user?.id;
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 })
     }

@@ -32,12 +32,11 @@ export default function Sidebar() {
   const [jobsOpen, setJobsOpen] = useState(true)
   const pathname = usePathname()
   const { data: session } = useSession()
-  console.log(session?.user?.id)
 
   return (
     <div className={cn(
       "border-r bg-background",
-      isOpen ? "w-64" : "w-16",
+      isOpen ? "w-52" : "w-16",
       "transition-all duration-300 flex-shrink-0"
     )}>
       <div className="flex h-16 items-center justify-between px-4 border-b">
