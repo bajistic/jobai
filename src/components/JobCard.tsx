@@ -29,8 +29,23 @@ interface JobCardProps {
 export function JobCard({ job, onUpdate, isSelected, onSelect }: JobCardProps) {
   const [showNotesDialog, setShowNotesDialog] = useState(false)
   const [showLetterDialog, setShowLetterDialog] = useState(false)
-  const [notes, setNotes] = useState(job.notes || '')
+  const [notes, setNotes] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+
+  const fetchNotes = async () => {
+    setIsLoading(true)
+    try {
+      const response = await fetch(`/api/jobs/${job.id}/notes`)
+      if (!response.ok) throw new Error('Failed to fetch notes')
+      const data = await response.json()
+      setNotes(data.notes || '')
+    } catch (error) {
+      console.error('Error fetching notes:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const handleMenuAction = async (action: string) => {
     try {
@@ -51,6 +66,7 @@ export function JobCard({ job, onUpdate, isSelected, onSelect }: JobCardProps) {
           break
         case 'notes':
           setShowNotesDialog(true)
+          await fetchNotes()
           break
       }
       // Refresh the job list
@@ -164,12 +180,16 @@ export function JobCard({ job, onUpdate, isSelected, onSelect }: JobCardProps) {
             <DialogTitle>Notes for {job.title}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <Textarea
-              placeholder="Add your notes here..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="min-h-[200px]"
-            />
+            {isLoading ? (
+              <div>Loading notes...</div>
+            ) : (
+              <Textarea
+                placeholder="Add your notes here..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="min-h-[200px]"
+              />
+            )}
           </div>
           <DialogFooter>
             <Button

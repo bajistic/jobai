@@ -29,8 +29,19 @@ export async function POST(
       );
     }
     
+    // Get the user's notes for this job
+    const jobPreference = await prisma.job_preferences.findUnique({
+      where: {
+        job_id_user_id: { job_id: jobId, user_id: userId }
+      }
+    });
+    
     const openAIService = OpenAIService.getInstance();
-    const { content, docs_url } = await openAIService.generateCoverLetter(job as unknown as Job, undefined);
+    const { content, docs_url } = await openAIService.generateCoverLetter(
+      job as unknown as Job, 
+      undefined,
+      jobPreference?.notes || ''
+    );
 
     // Save to database
     await prisma.cover_letters.create({

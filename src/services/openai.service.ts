@@ -129,7 +129,8 @@ export class OpenAIService {
 
   public async generateCoverLetter(
     job: Job, 
-    onProgress?: (update: ProgressUpdate) => void
+    onProgress?: (update: ProgressUpdate) => void,
+    notes?: string
   ): Promise<{ content: string; docs_url: string }> {
     try {
       onProgress?.({ progress: 20, status: 'Creating thread...' });
@@ -138,7 +139,7 @@ export class OpenAIService {
       onProgress?.({ progress: 40, status: 'Adding message to thread...' });
       await this.openai.beta.threads.messages.create(thread.id, {
         role: "user",
-        content: `Inserat: ${job.description}\nAnmerkungen: ${job.preferences?.notes || ''}`
+        content: `Inserat: ${job.description}\nAnmerkungen: ${notes}`
       });
 
       onProgress?.({ progress: 60, status: 'Starting assistant run...' });
