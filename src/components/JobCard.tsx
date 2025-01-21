@@ -32,32 +32,6 @@ export function JobCard({ job, onUpdate, isSelected, onSelect }: JobCardProps) {
   const [notes, setNotes] = useState(job.notes || '')
   const [isSaving, setIsSaving] = useState(false)
 
-  const toggleHidden = async () => {
-    try {
-      await fetch(`/api/jobs/${job.id}/hide`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isHidden: !job.isHidden }),
-      })
-      onUpdate()
-    } catch (error) {
-      console.error('Error updating job:', error)
-    }
-  }
-
-  const toggleStarred = async () => {
-    try {
-      await fetch(`/api/jobs/${job.id}/star`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isStarred: !job.isStarred }),
-      })
-      onUpdate?.()
-    } catch (error) {
-      console.error('Error updating job:', error)
-    }
-  }
-
   const handleMenuAction = async (action: string) => {
     try {
       switch (action) {
@@ -122,7 +96,14 @@ export function JobCard({ job, onUpdate, isSelected, onSelect }: JobCardProps) {
         onClick={() => onSelect?.(job)}
       >
         <CardHeader className="pb-2 flex flex-row justify-between items-start">
-          <CardTitle className="text-lg font-semibold">{job.title}</CardTitle>
+          <CardTitle className="text-lg font-semibold">
+            {job.title}
+            {job.status && (
+              <Badge variant="secondary" className="ml-2">
+                {job.status}
+              </Badge>
+            )}
+          </CardTitle>
           <DropdownMenu>
             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
               <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -150,19 +131,19 @@ export function JobCard({ job, onUpdate, isSelected, onSelect }: JobCardProps) {
           </DropdownMenu>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">{job.company}</p>
+          <p className="text-sm font-medium text-muted-foreground">{job.company}</p>
           <p className="text-sm text-muted-foreground">{job.location}</p>
           <div className="flex gap-2 mt-2">
-            <Badge variant="secondary">
-              {job.status || 'New'}
-            </Badge>
+            <p className="text-sm text-muted-foreground">
+              {job.published ? new Date(job.published).toLocaleDateString('de-CH') : 'No date'}
+            </p>
             {job.isStarred && (
               <Badge 
                 variant="secondary"
                 className="cursor-pointer hover:bg-accent"
                 onClick={(e) => {
                   e.stopPropagation()
-                  toggleStarred()
+                  handleMenuAction('star')
                 }}
               >
                 <BookmarkIcon className="h-3 w-3 mr-1" />

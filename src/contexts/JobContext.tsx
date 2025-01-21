@@ -85,26 +85,6 @@ export function JobProvider({ children }: { children: ReactNode }) {
     }
   }, [currentPage])
 
-/*   useEffect(() => {
-    const location = searchParams.get('location')
-    const ranking = searchParams.get('ranking')
-    const status = searchParams.get('status')
-    const showHidden = searchParams.get('showHidden') === 'true'
-    const onlyStarred = searchParams.get('onlyStarred') === 'true'
-
-    const timeoutId = setTimeout(() => {
-      fetchJobs({ 
-        location: location || undefined,
-        ranking: ranking || undefined,
-        status: status || undefined,
-        showHidden: showHidden || undefined,
-        onlyStarred: onlyStarred || undefined
-      })
-    }, 100)
-
-    return () => clearTimeout(timeoutId)
-  }, [searchParams, fetchJobs]) */
-
   const handlePageChange = useCallback((page: number) => {
     const params = new URLSearchParams(searchParams.toString())
     params.set('page', page.toString())

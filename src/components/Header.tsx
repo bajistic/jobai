@@ -22,14 +22,14 @@ export default function Header({ onToggleJobList, showJobList }: HeaderProps) {
           {/* TODO: Add search bar logic here*/}
             <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              className="pl-8 w-full lg:w-64"
+              className="pl-8 w-full lg:w-full"
               placeholder="Search jobs..."
             />
           </div>
         </div>
         <div className="flex items-center space-x-2">
           <JobFilter />
-          <Button variant="outline" className="flex-1 lg:flex-none">Select</Button>
+{/*           <Button variant="outline" className="flex-1 lg:flex-none">Select</Button> */}
           <Button variant="ghost" size="icon" className="lg:hidden" onClick={onToggleJobList}>
             {showJobList ? <FileText className="h-5 w-5" /> : <List className="h-5 w-5" />}
           </Button>

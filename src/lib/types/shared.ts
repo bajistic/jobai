@@ -26,7 +26,7 @@ export interface Job {
   description: string;
   url: string;
   workload?: string;
-  published: Date;
+  published?: Date;
   ranking?: string;
   categories: string[];
   contract?: string;

@@ -82,6 +82,7 @@ export async function GET(request: NextRequest) {
       prisma.jobs.count({ where })
     ])
 
+
     return NextResponse.json({
       jobs: jobs.map(job => ({
         ...job,
