@@ -38,7 +38,7 @@ function RootLayoutContent({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
       <div className="flex flex-col flex-1 overflow-hidden">
-        <Header />
+        <Header onToggleJobList={() => {}} showJobList={false} />
         <main className="flex-1">
           {children}
         </main>
