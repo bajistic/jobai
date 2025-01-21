@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { OpenAIService } from '@/services/openai.service';
 
 export async function GET(
   _req: NextRequest,
@@ -8,20 +9,15 @@ export async function GET(
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        const steps = [
-          { progress: 20, status: 'Creating thread...' },
-          { progress: 40, status: 'Adding message to thread...' },
-          { progress: 60, status: 'Starting assistant run...' },
-          { progress: 80, status: 'Generating content...' },
-          { progress: 90, status: 'Creating Google Doc...' },
-          { progress: 100, status: 'Completed!' },
-        ];
-
-        for (const step of steps) {
-          const data = encoder.encode(`data: ${JSON.stringify(step)}\n\n`);
-          controller.enqueue(data);
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
+        const openAIService = OpenAIService.getInstance();
+        
+        await openAIService.generateCoverLetter(
+          { id: context.params.id },
+          (update) => {
+            const data = encoder.encode(`data: ${JSON.stringify(update)}\n\n`);
+            controller.enqueue(data);
+          }
+        );
       } catch (error) {
         controller.error(error);
       } finally {

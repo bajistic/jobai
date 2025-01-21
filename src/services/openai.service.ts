@@ -30,6 +30,11 @@ const ASSISTANT_ID = "asst_ycM57UoS5QGUBoSxepUAXvsJ"; // Cover Letter Composer I
 const MAX_COMPLETION_ATTEMPTS = 30;
 const COMPLETION_CHECK_INTERVAL = 1000; // 1 second
 
+interface ProgressUpdate {
+  progress: number;
+  status: string;
+}
+
 export class OpenAIService {
   private static instance: OpenAIService;
   private openai: OpenAI;
@@ -122,30 +127,33 @@ export class OpenAIService {
     }
   }
 
-  public async generateCoverLetter(job: Job): Promise<{ content: string; docs_url: string }> {
+  public async generateCoverLetter(
+    job: Job, 
+    onProgress?: (update: ProgressUpdate) => void
+  ): Promise<{ content: string; docs_url: string }> {
     try {
-      console.log('Creating thread...');
+      onProgress?.({ progress: 20, status: 'Creating thread...' });
       const thread = await this.openai.beta.threads.create();
 
-      console.log('Adding message to thread...');
+      onProgress?.({ progress: 40, status: 'Adding message to thread...' });
       await this.openai.beta.threads.messages.create(thread.id, {
         role: "user",
         content: `Inserat: ${job.description}\nAnmerkungen: ${job.preferences?.notes || ''}`
       });
 
-      console.log('Starting assistant run...');
+      onProgress?.({ progress: 60, status: 'Starting assistant run...' });
       const run = await this.openai.beta.threads.runs.create(thread.id, {
         assistant_id: ASSISTANT_ID,
       });
 
-      console.log('Waiting for completion...');
+      onProgress?.({ progress: 70, status: 'Waiting for completion...' });
       const runStatus = await this.waitForCompletion(thread.id, run.id);
 
       if (runStatus.status !== 'completed') {
         throw new Error('Generation timeout or failed');
       }
 
-      console.log('Retrieving response...');
+      onProgress?.({ progress: 80, status: 'Retrieving response...' });
       const messages = await this.openai.beta.threads.messages.list(thread.id);
       const content = messages.data[0].content[0];
       
@@ -153,11 +161,11 @@ export class OpenAIService {
         throw new Error('Unexpected response type');
       }
 
-      console.log('Creating Google Doc...');
+      onProgress?.({ progress: 90, status: 'Creating Google Doc...' });
       const googleDocsService = GoogleDocsService.getInstance();
       const docs_url = await googleDocsService.createCoverLetterDoc(content.text.value, job);
 
-      console.log('Cover letter generation completed successfully');
+      onProgress?.({ progress: 100, status: 'Cover letter generation completed successfully' });
       return { content: content.text.value, docs_url };
     } catch (error) {
       console.error('Cover letter generation failed:', error);

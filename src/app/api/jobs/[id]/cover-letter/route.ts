@@ -2,14 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { OpenAIService } from '@/services/openai.service';
 import { prisma } from '@/lib/prisma';
 import { Job } from '@/lib/types/shared';
-
+import { auth } from '@/lib/auth';
 export async function POST(
   _req: NextRequest,
   context: { params: { id: string } }
 ) {
   const { params } = context;
   const jobId = Number(params.id);
-  
+  const session = await auth();
+  const userId = session?.user?.id;
+
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const job = await prisma.jobs.findUnique({
       where: { id: jobId },
@@ -24,12 +30,13 @@ export async function POST(
     }
     
     const openAIService = OpenAIService.getInstance();
-    const { content, docs_url } = await openAIService.generateCoverLetter(job as unknown as Job);
+    const { content, docs_url } = await openAIService.generateCoverLetter(job as unknown as Job, undefined);
 
     // Save to database
     await prisma.cover_letters.create({
       data: {
         job_id: jobId,
+        user_id: userId,
         content,
         docs_url,
       }
