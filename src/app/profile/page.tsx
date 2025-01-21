@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
+import { useSession, signOut } from 'next-auth/react'
+import { LogOut } from 'lucide-react'
 
 export default function ProfilePage() {
   const { data: session } = useSession()
@@ -44,6 +45,10 @@ export default function ProfilePage() {
     }
   }
 
+  const handleSignOut = async () => {
+    await signOut({ callbackUrl: '/' })
+  }
+
   if (!session) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -59,14 +64,23 @@ export default function ProfilePage() {
       <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-sm p-8">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Profile</h1>
-          {!isEditing && (
+          <div className="flex gap-3">
+            {!isEditing && (
+              <button
+                onClick={() => setIsEditing(true)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              >
+                Edit Profile
+              </button>
+            )}
             <button
-              onClick={() => setIsEditing(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              onClick={handleSignOut}
+              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors flex items-center gap-2"
             >
-              Edit Profile
+              <LogOut className="h-4 w-4" />
+              Sign Out
             </button>
-          )}
+          </div>
         </div>
         
         {isEditing ? (

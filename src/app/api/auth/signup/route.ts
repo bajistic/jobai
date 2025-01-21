@@ -22,10 +22,12 @@ export async function POST(req: Request) {
     const hashedPassword = await bcrypt.hash(password, 10)
 
     // Create user
-    const user = await prisma.user.create({
+    await prisma.user.create({
       data: {
+        id: crypto.randomUUID(),  // Generate UUID for id
         email,
         password: hashedPassword,
+        updatedAt: new Date(),    // Set current date for updatedAt
       }
     })
 
@@ -34,6 +36,7 @@ export async function POST(req: Request) {
       { status: 201 }
     )
   } catch (error) {
+    console.error('Signup error:', error)
     return NextResponse.json(
       { error: 'Something went wrong' },
       { status: 500 }

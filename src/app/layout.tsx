@@ -20,7 +20,6 @@ function RootLayoutContent({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession()
   const pathname = usePathname()
   const [showJobList, setShowJobList] = useState(true)
-  const [sidebarOpen, setSidebarOpen] = useState(true)
 
   // Don't check auth for auth-related pages
   if (pathname === '/auth/signin' || pathname === '/auth/signup') {
@@ -43,8 +42,6 @@ function RootLayoutContent({ children }: { children: React.ReactNode }) {
         <Header 
           onToggleJobList={() => setShowJobList(!showJobList)} 
           showJobList={showJobList}
-          onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-          user={session?.user}
         />
         <main className="flex-1">
           {children}
@@ -62,20 +59,19 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange>
-          <JobProvider>
-            <Providers>
-            <RootLayoutContent>
-              {children}
-            </RootLayoutContent>
-            </Providers>
-          </JobProvider>
-        </ThemeProvider>
+        <JobProvider>
+          <Providers>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
+              <RootLayoutContent>{children}</RootLayoutContent>
+            </ThemeProvider>
+          </Providers>
+        </JobProvider>
       </body>
     </html>
-  )
+  );
 }

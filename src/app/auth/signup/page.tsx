@@ -26,6 +26,7 @@ export default function SignUp() {
         setError(data.error)
       }
     } catch (error) {
+      console.error('Signup error:', error)
       setError('Something went wrong')
     }
   }

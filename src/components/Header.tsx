@@ -2,16 +2,15 @@
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Menu, Search, List, FileText } from 'lucide-react'
+import { Search, List, FileText } from 'lucide-react'
 import { JobFilter } from "@/components/JobFilter"
 
 interface HeaderProps {
   onToggleJobList: () => void
   showJobList: boolean
-  onToggleSidebar: () => void
 }
 
-export default function Header({ onToggleJobList, showJobList, onToggleSidebar }: HeaderProps) {
+export default function Header({ onToggleJobList, showJobList }: HeaderProps) {
   return (
     <header className="border-b bg-background h-16">
       <div className="flex flex-col space-y-2 p-4 py-3 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">

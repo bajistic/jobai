@@ -2,12 +2,20 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { CoverLetter, Job, JobPreference } from '@/lib/types/shared'
+import { auth } from '@/lib/auth'
 
 // Define the status type explicitly
 type JobStatus = 'new' | 'applied' | 'rejected' | 'interview'
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const userId = session.user.id;
+    console.log('User ID:', userId)
+
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
     const pageSize = parseInt(searchParams.get('pageSize') || '20')
@@ -25,7 +33,7 @@ export async function GET(request: NextRequest) {
         preferences: {
           some: {
             is_starred: true,
-            user_id: 1
+            user_id: userId
           }
         }
       }),
@@ -33,7 +41,7 @@ export async function GET(request: NextRequest) {
         preferences: {
           some: {
             is_hidden: true,
-            user_id: 1
+            user_id: userId
           }
         }
       }),
@@ -69,7 +77,7 @@ export async function GET(request: NextRequest) {
           cover_letters: true,
           job_preferences: {
             where: {
-              user_id: 1
+              user_id: userId
             }
           }
         }
@@ -77,26 +85,12 @@ export async function GET(request: NextRequest) {
       prisma.jobs.count({ where })
     ])
 
-    const serializeJob = (job: Job) => ({
-      ...job,
-      id: Number(job.id),
-      preferences: job.preferences?.map((p: JobPreference) => ({
-        ...p,
-        id: Number(p.id),
-        job_id: Number(p.job_id),
-        user_id: Number(p.user_id)
-      })),
-      isStarred: job.preferences?.some((p: JobPreference) => p.is_starred) || false,
-      isHidden: job.preferences?.some((p: JobPreference) => p.is_hidden) || false,
-      cover_letters: job.cover_letter?.map((cl: CoverLetter) => ({
-        ...cl,
-        id: Number(cl.id),
-        jobId: cl.jobId ? Number(cl.jobId) : null
-      }))
-    })
-
     return NextResponse.json({
-      jobs: jobs.map(serializeJob),
+      jobs: jobs.map(job => ({
+        ...job,
+        isStarred: job.job_preferences?.some(p => p.is_starred) || false,
+        isHidden: job.job_preferences?.some(p => p.is_hidden) || false
+      })),
       total,
       page,
       pageSize
