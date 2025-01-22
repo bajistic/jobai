@@ -50,6 +50,9 @@ model User {
   Session         Session[]
   cover_letters   cover_letters[]
   job_preferences job_preferences[]
+  documents       UserDocument[]
+  assistants      UserAssistant[]
+  vectorStore     UserVectorStore[]
 }
 
 model VerificationToken {
@@ -118,4 +121,37 @@ enum job_status {
   applied
   rejected
   interview
+}
+
+model UserDocument {
+  id              String         @id @default(cuid())
+  name            String
+  fileId          String // OpenAI file ID
+  userId          String
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model UserAssistant {
+  id              String         @id @default(cuid())
+  userId          String
+  assistantId     String
+  assistantName   String
+  systemPrompt    String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserVectorStore {
+  id            String   @id @default(cuid())
+  userId        String
+  vectorStoreId String
+  fileIds       String[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

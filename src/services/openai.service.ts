@@ -4,6 +4,7 @@ import { Job } from '@/lib/types/shared';
 import { z } from 'zod';
 import { zodResponseFormat } from "openai/helpers/zod";
 import { GoogleDocsService } from './google-docs.service';
+import { prisma } from '@/lib/prisma';
 
 interface Assistant {
   id: string;

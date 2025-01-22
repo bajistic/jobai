@@ -49,7 +49,7 @@ export default function JobPreview({ selectedJob, onBack }: JobPreviewProps) {
           <CardContent className="space-y-6">
             <div>
               <h3 className="text-xl font-semibold mb-2">Job Description</h3>
-              <div className="prose prose-sm dark:prose-invert max-w-none">
+              <div className="prose prose-sm max-w-none">
                 <ReactMarkdown>
                   {selectedJob.description || 'No description available.'}
                 </ReactMarkdown>
