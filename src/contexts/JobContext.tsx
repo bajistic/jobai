@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react'
+import { createContext, useContext, useState, useCallback, ReactNode, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Job } from '@/lib/types/shared'
 
@@ -50,12 +50,28 @@ const JobContext = createContext<JobContextType>({
   updateJobStatus: async () => {},
 })
 
-export function JobProvider({ children }: { children: ReactNode }) {
-  const [jobs, setJobs] = useState<Job[]>([])
-  const [loading, setLoading] = useState(false)
-  const [totalJobs, setTotalJobs] = useState(0)
-  const [selectedJobId, setSelectedJobId] = useState<number | null>(null)
-  
+// Create a separate component for the parts that need useSearchParams
+function JobProviderContent({ 
+  children,
+  setJobs,
+  setTotalJobs,
+  setLoading,
+  jobs,
+  loading,
+  totalJobs,
+  selectedJobId,
+  setSelectedJobId
+}: {
+  children: ReactNode
+  setJobs: (jobs: Job[]) => void
+  setTotalJobs: (total: number) => void
+  setLoading: (loading: boolean) => void
+  jobs: Job[]
+  loading: boolean
+  totalJobs: number
+  selectedJobId: number | null
+  setSelectedJobId: (id: number | null) => void
+}) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const currentPage = Number(searchParams.get('page')) || 1
@@ -167,6 +183,30 @@ export function JobProvider({ children }: { children: ReactNode }) {
     }}>
       {children}
     </JobContext.Provider>
+  )
+}
+
+export function JobProvider({ children }: { children: ReactNode }) {
+  const [jobs, setJobs] = useState<Job[]>([])
+  const [loading, setLoading] = useState(false)
+  const [totalJobs, setTotalJobs] = useState(0)
+  const [selectedJobId, setSelectedJobId] = useState<number | null>(null)
+
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <JobProviderContent
+        setJobs={setJobs}
+        setTotalJobs={setTotalJobs}
+        setLoading={setLoading}
+        jobs={jobs}
+        loading={loading}
+        totalJobs={totalJobs}
+        selectedJobId={selectedJobId}
+        setSelectedJobId={setSelectedJobId}
+      >
+        {children}
+      </JobProviderContent>
+    </Suspense>
   )
 }
 

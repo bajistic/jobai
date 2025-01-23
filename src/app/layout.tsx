@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense } from 'react'
 import dynamic from 'next/dynamic'
 import { Inter } from "next/font/google"
 import { useSession } from 'next-auth/react'
@@ -21,8 +21,9 @@ function RootLayoutContent({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession()
   const pathname = usePathname()
 
-  // Don't check auth for auth-related pages
-  if (pathname === '/auth/signin' || pathname === '/auth/signup') {
+  // Don't check auth for auth-related pages and error pages
+  if (pathname === '/auth/signin' || pathname === '/auth/signup' || 
+      pathname === '/404' || pathname === '/_not-found') {
     return <>{children}</>
   }
 
@@ -58,18 +59,20 @@ export default function RootLayout({
       <body className={inter.className}>
         <JobProvider>
           <Providers>
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="system"
-              enableSystem
-              disableTransitionOnChange
-            >
-              <RootLayoutContent>{children}</RootLayoutContent>
-            </ThemeProvider>
+            <Suspense fallback={<div>Loading...</div>}>
+              <ThemeProvider
+                attribute="class"
+                defaultTheme="system"
+                enableSystem
+                disableTransitionOnChange
+              >
+                <RootLayoutContent>{children}</RootLayoutContent>
+              </ThemeProvider>
+            </Suspense>
           </Providers>
           <Toaster />
         </JobProvider>
       </body>
     </html>
-  );
+  )
 }
