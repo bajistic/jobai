@@ -6,7 +6,8 @@
     "dev": "NODE_OPTIONS='--inspect' next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "postbuild": "prisma generate && prisma migrate deploy"
   },
   "dependencies": {
     "@auth/core": "^0.34.2",

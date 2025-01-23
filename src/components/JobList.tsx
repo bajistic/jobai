@@ -1,13 +1,10 @@
 'use client'
 
 import { useSearchParams, useRouter } from 'next/navigation'
-import { useEffect } from 'react'
-import { useState } from 'react'
+import { useEffect, Suspense } from 'react'
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { cn } from "@/lib/utils"
 import { Job } from '@/lib/types/shared'
 import { JobCard } from '@/components/JobCard'
 import { JobPagination } from '@/components/ui/JobPagination'
@@ -48,9 +45,10 @@ export default function JobList({ jobs, loading, onSelectJob, selectedJobId, tot
   }, [currentPage, totalPages])
 
   return (
-    <ScrollArea className="h-[calc(100vh-4rem)]">
-      <div className="p-4 space-y-4">
-        {loading ? (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ScrollArea className="h-[calc(100vh-4rem)]">
+        <div className="p-4 space-y-4">
+          {loading ? (
           <div className="p-4 space-y-4">
             {[...Array(5)].map((_, i) => (
               <Card key={i} className="cursor-pointer">
@@ -72,6 +70,7 @@ export default function JobList({ jobs, loading, onSelectJob, selectedJobId, tot
                 job={job}
                 isSelected={selectedJobId === job.id}
                 onSelect={() => onSelectJob(job)}
+                onUpdate={() => {}}
               />
             ))}
             <JobPagination />
@@ -79,5 +78,6 @@ export default function JobList({ jobs, loading, onSelectJob, selectedJobId, tot
         )}
       </div>
     </ScrollArea>
+    </Suspense>
   )
 } 
