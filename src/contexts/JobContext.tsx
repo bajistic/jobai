@@ -170,14 +170,10 @@ export function JobProvider({ children }: { children: ReactNode }) {
   )
 }
 
-export const useJobs = (params?: { 
-  status?: string, 
-  onlyStarred?: boolean,
-  showHidden?: boolean 
-}) => {
+export function useJobs() {
   const context = useContext(JobContext)
   if (!context) {
     throw new Error('useJobs must be used within a JobProvider')
   }
-  return { jobs: context.jobs, loading: context.loading, totalJobs: context.totalJobs }
+  return context
 } 
