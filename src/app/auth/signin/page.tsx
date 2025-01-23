@@ -7,85 +7,84 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardHeader, CardContent } from "@/components/ui/card"
 import Link from 'next/link'
+import { Suspense } from 'react'
 
-export default function SignIn() {
-  const { data: session, status } = useSession()
+function SignInContent() {
+  const { data: session } = useSession()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
 
-  // Redirect to home if already authenticated
-  if (status !== 'loading' && session) {
+  if (session) {
     redirect('/')
   }
 
-  // Only show sign in form if not authenticated
-  if (status === 'loading') {
-    return <div>Loading...</div>
-  }
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
       const result = await signIn('credentials', {
         email,
         password,
-        redirect: false // Don't redirect automatically
+        redirect: false,
       })
 
-      console.log('Sign in result:', result) // Debug log
-
       if (result?.error) {
-        setError(result.error)
-      } else if (result?.ok) {
-        window.location.href = '/' // Manual redirect on success
+        setError('Invalid credentials')
       }
-    } catch (err) {
-      console.error('Sign in error:', err) // Debug log
-      setError('An error occurred during sign in')
+    } catch (error) {
+      setError('An error occurred')
     }
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen">
+    <div className="flex min-h-screen items-center justify-center">
       <Card className="w-[350px]">
-        <CardHeader>
-          <h2 className="text-2xl font-bold text-center">Sign In</h2>
+        <CardHeader className="text-2xl font-bold text-center">
+          Sign In
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div className="text-red-500 text-sm text-center">{error}</div>
+            )}
             <div className="space-y-2">
               <Input
                 type="email"
-                name="email"
                 placeholder="Email"
-                required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                required
               />
             </div>
             <div className="space-y-2">
               <Input
                 type="password"
-                name="password"
                 placeholder="Password"
-                required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                required
               />
             </div>
-            {error && (
-              <p className="text-sm text-red-500">{error}</p>
-            )}
             <Button type="submit" className="w-full">
               Sign In
             </Button>
           </form>
-          <p className="text-center">
-            Don&apos;t have an account? <Link href="/auth/signup" className="text-blue-500">Sign Up</Link>
-          </p>
+          <div className="mt-4 text-center text-sm">
+            Don&apos;t have an account?{' '}
+            <Link href="/auth/signup" className="text-blue-500 hover:underline">
+              Sign Up
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SignInContent />
+    </Suspense>
   )
 } 

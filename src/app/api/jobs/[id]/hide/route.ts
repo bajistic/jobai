@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { auth } from '@/lib/auth'
 
 export async function PATCH(
   request: Request,
@@ -7,7 +8,11 @@ export async function PATCH(
 ) {
   try {
     const jobId = parseInt(await params.id)
-    const userId = 1 // TODO: Get from auth session
+    const session = await auth()
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const userId = session.user.id
     const { isHidden } = await request.json()
 
     const updatedPreference = await prisma.job_preferences.upsert({

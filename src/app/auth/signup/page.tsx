@@ -3,8 +3,12 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card, CardHeader, CardContent } from "@/components/ui/card"
+import { Suspense } from 'react'
 
-export default function SignUp() {
+function SignUpContent() {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -18,49 +22,67 @@ export default function SignUp() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       })
-      
+
       if (res.ok) {
         router.push('/auth/signin')
       } else {
         const data = await res.json()
-        setError(data.error)
+        setError(data.error || 'Something went wrong')
       }
     } catch (error) {
-      console.error('Signup error:', error)
-      setError('Something went wrong')
+      setError('An error occurred')
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="max-w-md w-full space-y-8 p-8">
-        <h2 className="text-center text-3xl font-bold">Sign Up</h2>
-        {error && <p className="text-red-500">{error}</p>}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email"
-            required
-            className="w-full p-2 border rounded"
-          />
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
-            required
-            className="w-full p-2 border rounded"
-          />
-          <button type="submit" className="w-full p-2 bg-blue-500 text-white rounded">
-            Sign Up
-          </button>
-        </form>
-        <p className="text-center">
-          Already have an account? <Link href="/auth/signin" className="text-blue-500">Sign In</Link>
-        </p>
-      </div>
+    <div className="flex min-h-screen items-center justify-center">
+      <Card className="w-[350px]">
+        <CardHeader className="text-2xl font-bold text-center">
+          Sign Up
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div className="text-red-500 text-sm text-center">{error}</div>
+            )}
+            <div className="space-y-2">
+              <Input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+            <Button type="submit" className="w-full">
+              Sign Up
+            </Button>
+          </form>
+          <div className="mt-4 text-center text-sm">
+            Already have an account?{' '}
+            <Link href="/auth/signin" className="text-blue-500 hover:underline">
+              Sign In
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
     </div>
+  )
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SignUpContent />
+    </Suspense>
   )
 } 
