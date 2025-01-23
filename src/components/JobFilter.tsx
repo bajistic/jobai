@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useJobs } from '@/contexts/JobContext'
 import { JobFilter as JobFilterType } from '@/lib/types/shared'
@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select"
 import { Filter } from 'lucide-react'
 
-export function JobFilter() {
+function JobFilterContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { fetchJobs } = useJobs()
@@ -117,5 +117,13 @@ export function JobFilter() {
         </div>
       </PopoverContent>
     </Popover>
+  )
+}
+
+export function JobFilter() {
+  return (
+    <Suspense fallback={<div>Loading filters...</div>}>
+      <JobFilterContent />
+    </Suspense>
   )
 } 
