@@ -10,6 +10,7 @@ import { Providers } from '@/app/providers'
 import { usePathname } from 'next/navigation'
 import { JobProvider } from '@/contexts/JobContext'
 import { ThemeProvider } from '@/components/theme-provider'
+import { Toaster } from 'sonner'
 
 const Header = dynamic(() => import('@/components/Header'), { ssr: false })
 const Sidebar = dynamic(() => import('@/components/Sidebar'), { ssr: false })
@@ -66,6 +67,7 @@ export default function RootLayout({
               <RootLayoutContent>{children}</RootLayoutContent>
             </ThemeProvider>
           </Providers>
+          <Toaster />
         </JobProvider>
       </body>
     </html>

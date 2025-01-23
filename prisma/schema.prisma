@@ -124,34 +124,39 @@ enum job_status {
 }
 
 model UserDocument {
-  id              String         @id @default(cuid())
-  name            String
-  fileId          String // OpenAI file ID
-  userId          String
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String           @id @default(cuid())
+  name              String
+  fileId            String // OpenAI file ID
+  userId            String
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  UserVectorStore   UserVectorStore? @relation(fields: [userVectorStoreId], references: [id])
+  userVectorStoreId String?
 
   @@index([userId])
 }
 
 model UserAssistant {
-  id              String         @id @default(cuid())
-  userId          String
-  assistantId     String
-  assistantName   String
-  systemPrompt    String?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model UserVectorStore {
   id            String   @id @default(cuid())
   userId        String
-  vectorStoreId String
-  fileIds       String[]
+  assistantId   String
+  assistantName String
+  systemPrompt  String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, assistantName])
+}
+
+model UserVectorStore {
+  id            String         @id @default(cuid())
+  userId        String
+  vectorStoreId String
+  fileIds       String[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userDocuments UserDocument[]
 }

@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import fs from "fs";
 import { config } from '@/lib/config';
 import { Job } from '@/lib/types/shared';
 import { z } from 'zod';
@@ -67,73 +68,166 @@ export class OpenAIService {
     return OpenAIService.instance;
   }
 
-  public async rankJob(job: Job): Promise<JobRanking> {
-    const systemPrompt = `
-      Analysiere die folgende Stellenanzeige und berechne Punkte basierend auf den folgenden Kriterien.
-  
-      Pluspunkte:
-      (+4) Einstiegsstelle in jedem Bereich (Einsteiger, Quereinsteiger)
-      (+4) Kaufmännische Lehre  (Kaufmann EFZ, KV), oder lediglich Berufslehre/Grundbildung erfordert
-      (+4) Kassenwesen und Kundendienst
-      (+3) Software-/Webentwicklungsrolle
-      (+3) IT-Support
-      (+3) Grafikdesignrolle
-      (+3) Detailhandel/Verkauf
-      (+3) Logistik
-  
-      Pluspunkte für jedes Tool:
-      (+1) Entwicklung: HTML, CSS, JavaScript, TypeScript, React, Next.js, Node.js, Express, Git
-      (+1) Betriebssysteme: Linux
-      (+0.5) Design-Tools: Photoshop, Illustrator, Figma
-      (+0.5) Datenbank: MongoDB, PostgreSQL
-      (+0.5) Sonstiges: MS Office, Python
-  
-      Minuspunkte:
-      (-3) Fachspezifische Rolle in einem anderen Bereich als den oben genannten
-      (-2) Ein Hochschulabschluss, Studium ist erforderlich
-      (-2) Ein Zertifikat ist erforderlich
-      (-1) Punkt für jedes Jahr Berufserfahrung in einem Bereich, der nicht oben genannt ist (z.B. (-4) wenn 4 Jahre Erfahrung erfordert) oder (-3) wenn "mehrjährige" Erfahrung
-  
-      Antworten:
-      Ranking: "bingo", "good", "okay" oder "bad"
-      Canton: Schweizer Kanton, in dem der Job angeboten wird.
-    `;
-    const userPrompt = `
-      Title: ${job.title}
-      Location: ${job.location}
-      Description: ${job.description}
-    `;
-
+  public async uploadDocuments(userId: string, files: File[]): Promise<string[]> {
     try {
-      const completion = await this.openai.beta.chat.completions.parse({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt }
-        ],
-        response_format: zodResponseFormat(jobRankingSchema, "job_ranking")
+      // Upload files to OpenAI one at a time
+      const uploadedFiles = [];
+      for (const file of files) {
+        const fileBuffer = Buffer.from(await file.arrayBuffer());
+        const formData = new FormData();
+        formData.append('file', new Blob([fileBuffer]), file.name);
+        formData.append('purpose', 'assistants');
+
+        const response = await fetch('https://api.openai.com/v1/files', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.openai.apiKey}`,
+          },
+          body: formData
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to upload file: ${file.name}`);
+        }
+
+        const result = await response.json();
+        uploadedFiles.push(result);
+      }
+
+      const fileIds = uploadedFiles.map(file => file.id);
+      console.log("File IDs:", fileIds);
+
+      // Create or update vector store
+      // TODO: Add fileIds to vector store
+      // const vectorStore = await this.openai.beta.vectorStores.create({
+      //   name: `VectorStore_${userId}`,
+      //   file_ids: fileIds,
+      // });
+
+
+      // Create or update vector store
+      const vectorStorePrisma = await prisma.userVectorStore.upsert({
+        where: { id: `vs_${userId}` },
+        create: {
+          userId,
+          vectorStoreId: `vs_${userId}`,
+          fileIds,
+        },
+        update: {
+          fileIds,
+        },
       });
 
-      const response = completion.choices[0]?.message?.parsed ?? {
-        ranking: "bad",
-        canton: "N/A"
-      };
-      return response as JobRanking;
+      // Create or update the cover letter assistant
+      const assistant = await this.createCoverLetterAssistant(userId, fileIds);
+
+      // Store in database
+      await prisma.userAssistant.upsert({
+        where: { userId },
+        create: {
+          userId,
+          assistantId: assistant.id,
+          assistantName: "Cover Letter Assistant",
+          systemPrompt: "You are a professional cover letter writer. Use the provided documents to personalize cover letters.",
+        },
+        update: {
+          assistantId: assistant.id,
+        },
+      });
+
+      // Store document records
+      await Promise.all(
+        files.map((file, index) =>
+          prisma.userDocument.create({
+            data: {
+              userId,
+              name: file.name,
+              fileId: fileIds[index],
+            },
+          })
+        )
+      );
+
+      return fileIds;
     } catch (error) {
-      console.error("Error filtering job with AI:", error);
-      return {
-        ranking: "bad",
-        canton: "N/A"
-      };
+      console.error('Error uploading documents:', error);
+      throw error;
+    }
+  }
+
+  private async createCoverLetterAssistant(userId: string, fileIds: string[]): Promise<Assistant> {
+    const assistant = await this.openai.beta.assistants.create({
+      name: `${userId}'s Cover Letter Assistant`,
+      description: "Personalized assistant for cover letter generation",
+      model: "gpt-4o",
+      tools: [{ type: "file_search" }],
+      instructions: `You are a professional cover letter writer. Use the provided documents to create personalized cover letters.
+        Always maintain a professional tone and highlight relevant experiences from the documents.`
+    });
+
+    return {
+      id: assistant.id,
+      name: assistant.name,
+      description: assistant.description
+    };
+  }
+
+  public async updateJobRankingAssistant(userId: string, jobFilterPrompt: string): Promise<void> {
+    try {
+      // Create or update the job ranking assistant
+      const assistant = await this.openai.beta.assistants.create({
+        name: `${userId}'s Job Ranker`,
+        description: "Personalized assistant for job ranking",
+        model: "gpt-4o-mini",
+        instructions: jobFilterPrompt,
+        tools: [{ type: "file_search" }],
+      });
+      console.log("Created assistant", assistant);
+
+      // Store in database
+      await prisma.userAssistant.upsert({
+        where: { 
+          userId_assistantName: {
+            userId,
+            assistantName: "Job Ranker"
+          }
+        },
+        create: {
+          userId,
+          assistantId: assistant.id,
+          assistantName: "Job Ranker",
+          systemPrompt: jobFilterPrompt,
+        },
+        update: {
+          assistantId: assistant.id,
+          systemPrompt: jobFilterPrompt,
+        },
+      });
+    } catch (error) {
+      console.error('Error updating job ranking assistant:', error);
+      throw error;
     }
   }
 
   public async generateCoverLetter(
-    job: Job, 
+    userId: string,
+    job: Job,
     onProgress?: (update: ProgressUpdate) => void,
     notes?: string
   ): Promise<{ content: string; docs_url: string }> {
     try {
+      // Get user's assistant
+      const assistant = await prisma.userAssistant.findFirst({
+        where: { 
+          userId,
+          assistantName: "Cover Letter Assistant"
+        }
+      });
+
+      if (!assistant) {
+        throw new Error('No cover letter assistant found for user');
+      }
+
       onProgress?.({ progress: 20, status: 'Creating thread...' });
       const thread = await this.openai.beta.threads.create();
 
@@ -145,7 +239,7 @@ export class OpenAIService {
 
       onProgress?.({ progress: 60, status: 'Starting assistant run...' });
       const run = await this.openai.beta.threads.runs.create(thread.id, {
-        assistant_id: ASSISTANT_ID,
+        assistant_id: assistant.assistantId,
       });
 
       onProgress?.({ progress: 70, status: 'Waiting for completion...' });
