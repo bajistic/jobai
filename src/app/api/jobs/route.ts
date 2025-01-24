@@ -61,7 +61,12 @@ export async function GET(request: NextRequest) {
         ]
       }),
       ...(ranking && ranking !== 'all' && {
-        ranking: ranking
+        job_preferences: {
+          some: {
+            ranking: ranking,
+            user_id: userId
+          }
+        }
       }),
     }
 
