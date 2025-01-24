@@ -68,10 +68,11 @@ export class OpenAIService {
     return OpenAIService.instance;
   }
 
-  public async uploadDocuments(userId: string, files: File[]): Promise<string[]> {
+  public async uploadDocuments(userId: string, files: File[], vectorStoreId?: string): Promise<string[]> {
     try {
-      // Upload files to OpenAI one at a time
       const uploadedFiles = [];
+
+      // Upload files sequentially for safety
       for (const file of files) {
         const fileBuffer = Buffer.from(await file.arrayBuffer());
         const formData = new FormData();
@@ -94,59 +95,67 @@ export class OpenAIService {
         uploadedFiles.push(result);
       }
 
+      // Store their OpenAI file IDs
       const fileIds = uploadedFiles.map(file => file.id);
-      console.log("File IDs:", fileIds);
 
-      // Create or update vector store
-      // TODO: Add fileIds to vector store
-      // const vectorStore = await this.openai.beta.vectorStores.create({
-      //   name: `VectorStore_${userId}`,
-      //   file_ids: fileIds,
-      // });
-
-
-      // Create or update vector store
-      const vectorStorePrisma = await prisma.userVectorStore.upsert({
-        where: { id: `vs_${userId}` },
-        create: {
-          userId,
-          vectorStoreId: `vs_${userId}`,
-          fileIds,
+      // Update or create our vector store record in the database
+      if (vectorStoreId) {
+        await prisma.userVectorStore.upsert({
+          where: { id: vectorStoreId },
+          create: {
+            userId,
+            vectorStoreId,
+            fileIds,
         },
         update: {
-          fileIds,
-        },
+          fileIds: {
+            push: fileIds
+          },
+          },
+        });
+      }
+
+      // Check if the user already has a "job-composer" assistant
+      const userAssistant = await prisma.userAssistant.findUnique({
+        where: {
+          userId_assistantName: {
+            userId,
+            assistantName: `Composer_${userId}`
+          }
+        }
       });
 
-      // Create or update the cover letter assistant
-      const assistant = await this.createCoverLetterAssistant(userId, fileIds);
+      // If not found, create it; else update the same assistant
+      if (!userAssistant) {
+        const newAssistant = await this.createComposerAssistant(userId, fileIds);
+        await prisma.userAssistant.create({
+          data: {
+            userId,
+            assistantId: newAssistant.id,
+            assistantName: `Composer_${userId}`,
+            systemPrompt: 'System prompt for composing job applications',
+          },
+        });
+      } else {
+        // Update existing assistant with new files
+        await this.openai.beta.assistants.update(userAssistant.assistantId, {
+          tool_resources: { file_search: { vector_store_ids: [vectorStoreId] } },
+        });
+        await this.openai.beta.vectorStores.fileBatches.create(vectorStoreId, {
+          file_ids: fileIds,
+        });
+      }
 
-      // Store in database
-      await prisma.userAssistant.upsert({
-        where: { userId },
-        create: {
-          userId,
-          assistantId: assistant.id,
-          assistantName: "Cover Letter Assistant",
-          systemPrompt: "You are a professional cover letter writer. Use the provided documents to personalize cover letters.",
-        },
-        update: {
-          assistantId: assistant.id,
-        },
-      });
-
-      // Store document records
-      await Promise.all(
-        files.map((file, index) =>
-          prisma.userDocument.create({
-            data: {
-              userId,
-              name: file.name,
-              fileId: fileIds[index],
-            },
-          })
-        )
-      );
+      // Store each document in your DB
+      for (let i = 0; i < files.length; i++) {
+        await prisma.userDocument.create({
+          data: {
+            userId,
+            name: files[i].name,
+            fileId: fileIds[i],
+          },
+        });
+      }
 
       return fileIds;
     } catch (error) {
@@ -155,56 +164,123 @@ export class OpenAIService {
     }
   }
 
-  private async createCoverLetterAssistant(userId: string, fileIds: string[]): Promise<Assistant> {
+  public async createComposerAssistant(userId: string, vectorStoreId: string, fileIds?: string[]): Promise<Assistant> {
+    // 1) Retrieve or create the user's vector store
+    // const vectorStore = await prisma.userVectorStore.findFirst({ where: { userId } });
+
+    // 2) Create a new assistant pointing to that vector store
     const assistant = await this.openai.beta.assistants.create({
-      name: `${userId}'s Cover Letter Assistant`,
+      name: `Composer_${userId}`,
       description: "Personalized assistant for cover letter generation",
       model: "gpt-4o",
       tools: [{ type: "file_search" }],
-      instructions: `You are a professional cover letter writer. Use the provided documents to create personalized cover letters.
-        Always maintain a professional tone and highlight relevant experiences from the documents.`
+      tool_resources: { file_search: { vector_store_ids: [vectorStoreId] } },
+      instructions: `Erstelle ein prägnantes Bewerbungsschreiben auf Deutsch oder in der Sprache des Stelleninserats basierend auf den bereitgestellten Dokumenten. 
+      Betone wichtige Punkte der Aufgaben und Anforderungen der Position und begründe deine Aussagen stilvoll und wahrheitsgetreu unter Verwendung meiner Referenzen und Erfahrungen. 
+      Die Anforderungen im Inserat sind nach Wichtigkeit für die Position geordnet. Generiere nur den Hauptteil des Schreibens. Wichtig: Verwende "ss" anstatt ß.`,
     });
+
+    console.log("Created assistant", assistant);
 
     return {
       id: assistant.id,
       name: assistant.name,
-      description: assistant.description
+      description: assistant.description ?? "",
+      instructions: assistant.instructions ?? "",
     };
   }
 
-  public async updateJobRankingAssistant(userId: string, jobFilterPrompt: string): Promise<void> {
+  public async createJobRankerAssistant(userId: string): Promise<{ id: string; name: string; description: string }> {
+    // Create ranker assistant on OpenAI
+    const assistant = await this.openai.beta.assistants.create({
+      name: `JobRanker_${userId}`,
+      description: 'Assistant for ranking jobs',
+      model: 'gpt-4o-mini',
+    });
+    // Return the newly created OpenAI assistant metadata
+    return {
+      id: assistant.id,
+      name: assistant.name,
+      description: assistant.description || '',
+    };
+  }
+
+  public async createUserVectorStore(userId: string): Promise<{ id: string }> {
+    // Example: create a vector store on OpenAI
+    const vectorStore = await this.openai.beta.vectorStores.create({
+      name: `VectorStore_${userId}`,
+      // Possibly specify other configs
+    });
+    console.log("Created vector store", vectorStore);
+    return { id: vectorStore.id };
+  }
+
+  public async updateJobRankingAssistant(userId: string, assistantId: string, jobRankerPrompt: string): Promise<void> {
     try {
       // Create or update the job ranking assistant
-      const assistant = await this.openai.beta.assistants.create({
-        name: `${userId}'s Job Ranker`,
-        description: "Personalized assistant for job ranking",
-        model: "gpt-4o-mini",
-        instructions: jobFilterPrompt,
-        tools: [{ type: "file_search" }],
-      });
-      console.log("Created assistant", assistant);
+      const assistant = await this.openai.beta.assistants.update(
+        assistantId,
+        {
+          instructions: jobRankerPrompt,
+        }
+      );
 
       // Store in database
       await prisma.userAssistant.upsert({
         where: { 
           userId_assistantName: {
             userId,
-            assistantName: "Job Ranker"
+            assistantName: `JobRanker_${userId}`
           }
         },
         create: {
           userId,
           assistantId: assistant.id,
-          assistantName: "Job Ranker",
-          systemPrompt: jobFilterPrompt,
+          assistantName: `JobRanker_${userId}`,
+          systemPrompt: jobRankerPrompt,
         },
         update: {
           assistantId: assistant.id,
-          systemPrompt: jobFilterPrompt,
+          systemPrompt: jobRankerPrompt,
         },
       });
     } catch (error) {
       console.error('Error updating job ranking assistant:', error);
+      throw error;
+    }
+  }
+
+  public async updateComposerAssistant(userId: string, assistantId: string, composerPrompt: string): Promise<void> {
+    try {
+      // Create or update the job composer assistant
+      const assistant = await this.openai.beta.assistants.update(
+        assistantId,
+        {
+          instructions: composerPrompt,
+        }
+      );
+
+      // Store in database
+      await prisma.userAssistant.upsert({
+        where: { 
+          userId_assistantName: {
+            userId,
+            assistantName: `Composer_${userId}`
+          }
+        },
+        create: {
+          userId,
+          assistantId: assistant.id,
+          assistantName: `Composer_${userId}`,
+          systemPrompt: composerPrompt,
+        },
+        update: {
+          assistantId: assistant.id,
+          systemPrompt: composerPrompt,
+        },
+      });
+    } catch (error) {
+      console.error('Error updating job composer assistant:', error);
       throw error;
     }
   }
@@ -220,7 +296,7 @@ export class OpenAIService {
       const assistant = await prisma.userAssistant.findFirst({
         where: { 
           userId,
-          assistantName: "Cover Letter Assistant"
+          assistantName: `Composer_${userId}`
         }
       });
 
@@ -268,6 +344,39 @@ export class OpenAIService {
       throw error;
     }
   }
+  
+  public async rankJob(job: Job, userId: string): Promise<JobRanking> {
+    const assistant = await prisma.userAssistant.findFirst({
+      where: { 
+        userId,
+        assistantName: `JobRanker_${userId}`
+      }
+    });
+
+    if (!assistant) {
+      throw new Error('No job ranking assistant found for user');
+    }
+
+    const thread = await this.openai.beta.threads.create();
+    await this.openai.beta.threads.messages.create(thread.id, {
+      role: "user",
+      content: `Inserat: ${job.description}`
+    });
+
+    const run = await this.openai.beta.threads.runs.create(thread.id, {
+      assistant_id: assistant.assistantId,
+    });
+
+    const runStatus = await this.waitForCompletion(thread.id, run.id);
+
+    if (runStatus.status !== "completed") throw new Error("Job ranking not completed");
+    const messages = await this.openai.beta.threads.messages.list(thread.id);
+    const content = messages.data[0].content[0];
+    if (content.type !== "text") throw new Error("Unexpected response type");
+
+    const json = JSON.parse(content.text.value);
+    return jobRankingSchema.parse(json) as JobRanking;
+  }
 
   private async waitForCompletion(threadId: string, runId: string) {
     let attempts = 0;
@@ -287,4 +396,14 @@ export class OpenAIService {
 
     return runStatus;
   }
+
+  public async deleteAssistant(assistantId: string): Promise<void> {
+    try {
+      await this.openai.beta.assistants.del(assistantId);
+    } catch (error) {
+      console.error('Error deleting OpenAI assistant:', error);
+      throw error;
+    }
+  }
+
 } 

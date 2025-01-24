@@ -1,11 +1,16 @@
 import { NextResponse } from 'next/server';
 import { OpenAIService } from '@/services/openai.service';
 import { auth } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 
 export async function POST(req: Request) {
   try {
     const session = await auth();
     const userId = session?.user?.id;
+    const vectorStore = await prisma.userVectorStore.findFirst({ 
+      where: { userId },
+      select: { vectorStoreId: true }
+    });
     
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -19,8 +24,7 @@ export async function POST(req: Request) {
     }
 
     const openAIService = OpenAIService.getInstance();
-    const fileIds = await openAIService.uploadDocuments(userId, files);
-    console.log("Files:", files);
+    const fileIds = await openAIService.uploadDocuments(userId, files, vectorStore?.vectorStoreId);
     console.log("File IDs:", fileIds);
 
     return NextResponse.json({ 

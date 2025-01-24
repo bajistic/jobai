@@ -3,6 +3,7 @@ import TurndownService from 'turndown';
 import { prisma } from '@/lib/prisma';
 import { Job, JobStatus } from '@/lib/types/shared';
 import { OpenAIService } from './openai.service';
+import { job_ranking } from '@prisma/client';
 
 interface ScrapeStatus {
   isRunning: boolean;
@@ -46,10 +47,10 @@ export class ScraperService {
     this.status.isRunning = false;
   }
 
-  private async processJob(job: Job) {
-    const response = await this.openai.rankJob(job as unknown as Job);
-    job.ranking = response.ranking;
-    job.canton = response.canton;
+  private async processJob(job: Job, userId: string) {
+    // const response = await this.openai.rankJob(job as unknown as Job, userId);
+    // job.ranking = response.ranking;
+    // job.canton = response.canton;
 
     const emoji =
       job.ranking === "bingo"
@@ -78,13 +79,12 @@ export class ScraperService {
         canton: job.canton,
         categories: job.categories?.join(','),
         status: 'new',
-        ranking: job.ranking,
         address: job.address,
       }
     });
   }
 
-  async startScraping(pageNumber: number) {
+  async startScraping(pageNumber: number, userId: string) {
     if (this.status.isRunning) {
       // If already running, stop the scraping
       console.log('Scraper is already running, stopping...');
@@ -114,7 +114,7 @@ export class ScraperService {
       });
       const page = await context.newPage();
 
-      await this.scrapeJobs(page, pageNumber)
+      await this.scrapeJobs(page, pageNumber, userId)
 
       await browser.close();
     } catch (error) {
@@ -125,7 +125,8 @@ export class ScraperService {
     }
   } 
 
-  private async scrapeJobs(page: Page, pageNumber: number) {
+  private async scrapeJobs(page: Page, pageNumber: number, userId: string) {
+    debugger;
     const baseUrl = "https://www.jobs.ch/en/vacancies/?employment-type=1&employment-type=5&region=2&term=";
     let hasMorePages = true;
     let duplicateCount = 0;
@@ -168,7 +169,7 @@ export class ScraperService {
 
             // Reset duplicate counter when we find a new job
             duplicateCount = 0;
-            await this.processJob(job);
+            await this.processJob(job, userId);
             this.status.totalJobs++;
             if (!this.status.isRunning) {
               console.log('Scraper is not running, stopping...');

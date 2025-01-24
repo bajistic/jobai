@@ -46,6 +46,7 @@ model User {
   image           String?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime
+  group           String?
   Account         Account[]
   Session         Session[]
   cover_letters   cover_letters[]
@@ -53,6 +54,8 @@ model User {
   documents       UserDocument[]
   assistants      UserAssistant[]
   vectorStore     UserVectorStore[]
+
+  @@index([id])
 }
 
 model VerificationToken {
@@ -135,6 +138,7 @@ model UserDocument {
   userVectorStoreId String?
 
   @@index([userId])
+  @@index([userVectorStoreId])
 }
 
 model UserAssistant {

@@ -14,29 +14,8 @@ export default function ProfilePage() {
     image: '',
     documents: [],
     assistantId: '',
-    jobFilterPrompt: `Ich suche nach Stellen in folgenden Bereichen:
-
-- Einstiegsstellen und Quereinstiegsmöglichkeiten
-- Kaufmännische Positionen (KV)
-- Kundendienst und Kassenwesen
-- Software- und Webentwicklung
-- IT-Support
-- Grafikdesign
-- Logistik
-
-Technische Kenntnisse:
-- Webentwicklung: HTML, CSS, JavaScript, TypeScript, React, Next.js, Node.js
-- Linux
-- Design: Photoshop, Illustrator, Figma
-- Datenbanken: MongoDB, PostgreSQL
-- MS Office, Python
-
-Nicht relevant:
-- Temporärstellen
-- Praktika
-- Lehrstellen
-- Stellen mit Hochschulabschluss
-- Stellen mit mehrjähriger Berufserfahrung`,
+    jobRankerPrompt: '',
+    composerPrompt: '',
   })
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -54,7 +33,8 @@ Nicht relevant:
         setProfile({
           ...data,
           documents: data.documents || [],
-          jobFilterPrompt: data.jobFilterPrompt || profile.jobFilterPrompt
+          jobRankerPrompt: data.assistants[0].systemPrompt,
+          composerPrompt: data.assistants[1].systemPrompt
         })
       }
     } catch (error) {
@@ -67,6 +47,7 @@ Nicht relevant:
     e.preventDefault()
     setIsSaving(true)
     try {
+      console.log('Profile to be sent', profile);
       const response = await fetch('/api/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -265,18 +246,29 @@ Nicht relevant:
                     {/* Job Filter Prompt */}
                     <div className="space-y-2">
                       <label className="block text-sm font-medium text-gray-700">
-                        Job Filter Criteria
+                        Job Ranker Criteria
                       </label>
                       <textarea
-                        value={profile.jobFilterPrompt || ''}
-                        onChange={(e) => setProfile({ ...profile, jobFilterPrompt: e.target.value })}
+                        value={profile.jobRankerPrompt || ''}
+                        onChange={(e) => setProfile({ ...profile, jobRankerPrompt: e.target.value })}
                         className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="Enter your custom job filtering criteria..."
-                        rows={23}
+                        placeholder="Enter your custom job ranking criteria..."
+                        rows={5}
                       />
-                      <p className="text-xs text-gray-500">
-                        Customize how your assistant filters and ranks job postings
-                      </p>
+                    </div>
+
+                    {/* Job Composer Prompt */}
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Job Composer Criteria
+                      </label>
+                      <textarea
+                        value={profile.composerPrompt || ''}
+                        onChange={(e) => setProfile({ ...profile, composerPrompt: e.target.value })}
+                        className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Enter your custom job composing criteria..."
+                        rows={5}
+                      />
                     </div>
                   </div>
                 </div>
