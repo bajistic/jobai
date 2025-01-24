@@ -27,10 +27,10 @@ export default function ScrapePage() {
 
   const fetchHistory = async () => {
     try {
-      const response = await fetch('/api/scraper/history');
+      const response = await fetch('/api/scraper?type=history');
       if (!response.ok) throw new Error('Failed to fetch history');
       const data = await response.json();
-      setScrapingHistory(data.jobs);
+      setScrapingHistory(data.jobs || []);
     } catch (error) {
       console.error('Error fetching history:', error);
     } finally {
@@ -39,9 +39,9 @@ export default function ScrapePage() {
   };
 
   // Protect the route - only allow user ID 1
-  if (!session?.user?.email || session.user.email !== "baji@gmail.com") {
+/*   if (!session?.user?.group || session.user.group !== "admin") {
     redirect('/');
-  }
+  } */
 
   return (
     <div className="container mx-auto p-6">

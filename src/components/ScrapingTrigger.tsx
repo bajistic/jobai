@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { useSession } from "next-auth/react";
 
 interface ScrapeStatus {
   isRunning: boolean;
@@ -19,7 +20,7 @@ export function ScrapingTrigger() {
 
   const fetchStatus = async () => {
     try {
-      const response = await fetch('/api/scraper/status');
+      const response = await fetch('/api/scraper?type=status');
       if (!response.ok) throw new Error('Failed to fetch status');
       const data = await response.json();
       setStatus(data);
@@ -34,6 +35,9 @@ export function ScrapingTrigger() {
     return () => clearInterval(interval);
   }, []);
 
+  const { data: session } = useSession();
+  const user = session?.user;
+
   const startScraping = async () => {
     setIsLoading(true);
     try {
@@ -42,7 +46,7 @@ export function ScrapingTrigger() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ pageNumber }),
+        body: JSON.stringify({ pageNumber, userId: user?.id }),
       });
       
       if (!response.ok) throw new Error('Failed to start scraping');

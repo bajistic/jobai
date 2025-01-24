@@ -3,11 +3,8 @@ import { OpenAIService } from '@/services/openai.service';
 import { prisma } from '@/lib/prisma';
 import { Job } from '@/lib/types/shared';
 import { auth } from '@/lib/auth';
-export async function POST(
-  _req: NextRequest,
-  context: { params: { id: string } }
-) {
-  const { params } = context;
+
+export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   const jobId = Number(params.id);
   const session = await auth();
   const userId = session?.user?.id;
@@ -17,33 +14,23 @@ export async function POST(
   }
 
   try {
-    const job = await prisma.jobs.findUnique({
-      where: { id: jobId },
-      include: { job_preferences: true }
+    const job = await prisma.jobs.findUnique({ where: { id: jobId } });
+    if (!job) {
+      return NextResponse.json({ success: false, error: 'Job not found' }, { status: 404 });
+    }
+
+    const jobPreference = await prisma.job_preferences.findUnique({
+      where: { job_id_user_id: { job_id: jobId, user_id: userId } }
     });
 
-    if (!job) {
-      return NextResponse.json(
-        { success: false, error: 'Job not found' },
-        { status: 404 }
-      );
-    }
-    
-    // Get the user's notes for this job
-    const jobPreference = await prisma.job_preferences.findUnique({
-      where: {
-        job_id_user_id: { job_id: jobId, user_id: userId }
-      }
-    });
-    
     const openAIService = OpenAIService.getInstance();
     const { content, docs_url } = await openAIService.generateCoverLetter(
-      job as unknown as Job, 
+      userId,
+      job as unknown as Job,
       undefined,
       jobPreference?.notes || ''
     );
 
-    // Save to database
     await prisma.cover_letters.create({
       data: {
         job_id: jobId,
@@ -53,17 +40,10 @@ export async function POST(
       }
     });
 
-    return NextResponse.json({ 
-      success: true, 
-      content,
-      docs_url
-    });
+    return NextResponse.json({ success: true, content, docs_url });
   } catch (error) {
     console.error('Failed to generate cover letter:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to generate cover letter' },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: 'Failed to generate cover letter' }, { status: 500 });
   }
 }
 

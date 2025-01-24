@@ -4,6 +4,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 import { JWT } from "next-auth/jwt"
+import { OpenAIService } from '@/services/openai.service'
 
 export const authOptions: AuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -47,6 +48,7 @@ export const authOptions: AuthOptions = {
             id: user.id,
             email: user.email,
             name: user.name,
+            group: user.group,
           }
         } catch (error) {
           console.error('Auth error:', error)
@@ -73,8 +75,49 @@ export const authOptions: AuthOptions = {
       if (session.user) {
         session.user.id = token.id as string
       }
+      console.log("Session", session);
       return session
     }
+  },
+  events: {
+    async createUser({ user }) {
+      if (!user.id) return;
+      const openAIService = OpenAIService.getInstance();
+
+      // 1) Create job ranker assistant on OpenAI
+      const rankerAssistant = await openAIService.createJobRankerAssistant(user.id);
+      // 2) Create job composer assistant on OpenAI
+      const composerAssistant = await openAIService.createComposerAssistant(user.id, /* no fileIds yet */ []);
+      // 3) Create vector store on OpenAI
+      const vectorStore = await openAIService.createUserVectorStore(user.id);
+
+      // Then store them in Prisma
+      await prisma.userAssistant.create({
+        data: {
+          userId: user.id,
+          assistantName: 'job-ranker',
+          assistantId: rankerAssistant.id, 
+          systemPrompt: 'System prompt for ranking jobs',
+        },
+      });
+
+      await prisma.userAssistant.create({
+        data: {
+          userId: user.id,
+          assistantName: 'job-composer',
+          assistantId: composerAssistant.id,
+          systemPrompt: 'System prompt for composing job applications',
+        },
+      });
+
+      await prisma.userVectorStore.create({
+        data: {
+          userId: user.id,
+          vectorStoreId: vectorStore.id,
+          fileIds: [],
+        },
+      });
+    },
   }
 }
 
