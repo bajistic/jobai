@@ -20,6 +20,8 @@ interface JobContextType {
   fetchJobs: (options?: JobFetchOptions) => Promise<void>
   setSelectedJobId: (id: number | null) => void
   updateJobStatus: (jobId: number, status: 'new' | 'applied' | 'rejected' | 'interview') => Promise<void>
+  fetchUnrankedJob: () => Promise<Job | null>
+  rankJob: (jobId: number, ranking: string) => Promise<void>
 }
 
 interface JobFetchOptions {
@@ -48,6 +50,8 @@ const JobContext = createContext<JobContextType>({
   fetchJobs: async (options?: JobFetchOptions) => undefined,
   setSelectedJobId: () => {},
   updateJobStatus: async () => {},
+  fetchUnrankedJob: async () => null,
+  rankJob: async () => {},
 })
 
 // Create a separate component for the parts that need useSearchParams
@@ -170,6 +174,37 @@ function JobProviderContent({
     }
   }, [fetchJobs]);
 
+  const fetchUnrankedJob = useCallback(async () => {
+    try {
+      const response = await fetch('/api/jobs/unranked');
+      const data = await response.json();
+      return data.job || null;
+    } catch (error) {
+      console.error('Error fetching unranked job:', error);
+      throw error;
+    }
+  }, []);
+
+  const rankJob = useCallback(async (jobId: number, ranking: string) => {
+    try {
+      const response = await fetch(`/api/jobs/${jobId}/rank`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ranking }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to rank job');
+      }
+      
+      // Refresh jobs list after ranking
+      await fetchJobs();
+    } catch (error) {
+      console.error('Error ranking job:', error);
+      throw error;
+    }
+  }, [fetchJobs]);
+
   return (
     <JobContext.Provider value={{
       jobs,
@@ -180,6 +215,8 @@ function JobProviderContent({
       fetchJobs,
       setSelectedJobId,
       updateJobStatus,
+      fetchUnrankedJob,
+      rankJob,
     }}>
       {children}
     </JobContext.Provider>
