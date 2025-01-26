@@ -9,6 +9,16 @@ export interface JobFilter {
   onlyApplied?: boolean;
 }
 
+export interface JobFetchOptions {
+  onlyStarred?: boolean
+  showHidden?: boolean
+  status?: string
+  page?: number
+  pageSize?: number
+  location?: string
+  ranking?: string
+}
+
 export enum JobStatus {
   NEW = 'new',
   APPLIED = 'applied',

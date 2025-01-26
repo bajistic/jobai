@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ job: null, message: "No unranked jobs found" });
   }
   console.log("Fetched Jobs", jobs.length);
-  return NextResponse.json({ job: jobs[0] });
+  return NextResponse.json({ jobs });
 } catch (error) {
   console.error("Error in GET /api/jobs/unranked:", error || "Unknown error");
   return NextResponse.json({ error: "Failed to fetch data" }, { status: 500 });
