@@ -13,11 +13,6 @@ interface Assistant {
   description: string;
 }
 
-interface Assistants {
-  composer: Assistant;
-  ranker: Assistant;
-}
-
 interface JobRanking {
   ranking: "bingo" | "good" | "okay" | "bad";
   canton: string;
@@ -28,7 +23,6 @@ const jobRankingSchema = z.object({
   canton: z.string(),
 });
 
-const ASSISTANT_ID = "asst_ycM57UoS5QGUBoSxepUAXvsJ"; // Cover Letter Composer ID
 const MAX_COMPLETION_ATTEMPTS = 30;
 const COMPLETION_CHECK_INTERVAL = 1000; // 1 second
 
@@ -40,25 +34,12 @@ interface ProgressUpdate {
 export class OpenAIService {
   private static instance: OpenAIService;
   private openai: OpenAI;
-  private assistants: Assistants;
 
   private constructor() {
     this.openai = new OpenAI({
       apiKey: config.openaiApiKey,
     });
     
-    this.assistants = {
-      composer: {
-        id: "asst_ycM57UoS5QGUBoSxepUAXvsJ",
-        name: "Cover Letter Composer",
-        description: "Generates cover letters based on job descriptions"
-      },
-      ranker: {
-        id: "asst_lRapp9wkqB88a3HAZO8ahcV9", // Replace with your actual ranker assistant ID
-        name: "Job Ranker",
-        description: "Ranks jobs based on criteria"
-      }
-    };
   }
 
   public static getInstance(): OpenAIService {

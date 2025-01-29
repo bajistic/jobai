@@ -1,36 +1,57 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+## Main Components 
 
-## Getting Started
+1. JobContext: Manages job-related state and operations. It uses a split provider pattern, which I remember from earlier discussions. The provider handles fetching jobs, pagination, and status updates.
+2. RankJobsPage: This is the page where users can rank unranked jobs. It uses the JobContext to get unranked jobs and the rankJob function. There are two versions: one for ranking all jobs and another for individual jobs.
+3. JobPreview: Displays detailed job information. It's a client component that shows job details and allows navigation back to the list, especially on mobile.
+4. OpenAIService and DeepSeekService: These services handle AI operations like generating cover letters and ranking jobs. The user is migrating from OpenAI to DeepSeek, so both are present, but DeepSeek is the new focus.
+5. API Routes: Several API endpoints handle job ranking, cover letter generation, and fetching unranked jobs. These routes interact with the database and AI services.
+6. ScraperService: Responsible for scraping job details from external sources and processing them into the application's Job format.
+7. ProfilePage: Lets users configure AI settings, upload documents for context, and view their uploaded files.
 
-First, run the development server:
+### OpenAI / Deepseek Services
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+AI Services: Handle cover letter generation and job ranking
+Migration State: Dual implementation with OpenAI (legacy) and DeepSeek (new)
+Key Difference: DeepSeek uses direct API calls vs OpenAI's thread/assistant model
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### State Management
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+* Central Hub: Manages jobs data, pagination, and ranking operations
+* Key Features:
+  * Split provider pattern for Next.js compatibility
+  * Handles API communication for jobs
+  * Maintains unranked jobs list
+  
+### Job Ranking Flow
 
-## Learn More
+* Two Implementations:
+1. Single-job ranking with instant next-job fetch
+2. Bulk ranking of all unranked jobs
+* Common Logic:
+  * Uses JobContext's rankJob method
+  * Integrates with /api/jobs/rank endpoint
+  
+* Critical Paths:
+  * Cover letter generation (streaming)
+  * Job ranking analysis
+  * Document context processing
+  
 
-To learn more about Next.js, take a look at the following resources:
+### Data Flow
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+> ScraperService → DB → JobContext → Components
+>           ↓
+> AI Services → Ranking/Generation → DB
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+Key Observations
+1. Dual AI Implementation: Current system uses both OpenAI and DeepSeek simultaneously
+2. Context Pattern: JobContext provides centralized state management
+3. Migration Needed: API routes still reference OpenAIService (e.g. rankall/route.ts)
+4. Document Handling: Profile page uploads feed into AI context building
+Suggested Next Steps
+1. Create AI service abstraction layer
+2. Update API routes to use DeepSeekService
+3. Implement feature flagging for AI provider selection
+4. Consolidate ranking page implementations
+Would you like me to elaborate on any specific aspect?

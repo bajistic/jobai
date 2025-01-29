@@ -1,5 +1,6 @@
 export const config = {
   openaiApiKey: process.env.OPENAI_API_KEY,
+  deepseekApiKey: process.env.DEEPSEEK_API_KEY,
   // Add other config values here as needed
   googleServiceAccount: {
     clientEmail: process.env.GOOGLE_CLIENT_EMAIL!,
