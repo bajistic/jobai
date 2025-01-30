@@ -294,19 +294,19 @@ export class OpenAIService {
         content: `Inserat: ${job.description}\nAnmerkungen: ${notes}`
       });
 
-      onProgress?.({ progress: 60, status: 'Starting assistant run...' });
+      onProgress?.({ progress: 50, status: 'Starting assistant run...' });
       const run = await this.openai.beta.threads.runs.create(thread.id, {
         assistant_id: assistant.assistantId,
       });
 
-      onProgress?.({ progress: 70, status: 'Waiting for completion...' });
+      onProgress?.({ progress: 60, status: 'Waiting for completion...' });
       const runStatus = await this.waitForCompletion(thread.id, run.id);
 
       if (runStatus.status !== 'completed') {
         throw new Error('Generation timeout or failed');
       }
 
-      onProgress?.({ progress: 80, status: 'Retrieving response...' });
+      onProgress?.({ progress: 70, status: 'Retrieving response...' });
       const messages = await this.openai.beta.threads.messages.list(thread.id);
       const content = messages.data[0].content[0];
       
@@ -314,12 +314,17 @@ export class OpenAIService {
         throw new Error('Unexpected response type');
       }
 
+      // Clean the text by removing file reference indicators
+      const cleanedText = content.text.value
+        .replace(/【.*?】/g, '') // Remove file reference indicators
+        .replace(/ß/g, 'ss');   // Replace 'ß' with 'ss'
+
       onProgress?.({ progress: 90, status: 'Creating Google Doc...' });
       const googleDocsService = GoogleDocsService.getInstance();
-      const docs_url = await googleDocsService.createCoverLetterDoc(content.text.value, job);
+      const docs_url = await googleDocsService.createCoverLetterDoc(cleanedText, job);
 
       onProgress?.({ progress: 100, status: 'Cover letter generation completed successfully' });
-      return { content: content.text.value, docs_url };
+      return { content: cleanedText, docs_url };
     } catch (error) {
       console.error('Cover letter generation failed:', error);
       throw error;
