@@ -2,6 +2,7 @@ import { google } from 'googleapis';
 import { GoogleAuth } from 'google-auth-library';
 import { config } from '@/lib/config';
 import { Job } from '@/lib/types/shared';
+import { auth } from '@/lib/auth';
 
 export class GoogleDocsService {
   private static instance: GoogleDocsService;
@@ -35,11 +36,13 @@ export class GoogleDocsService {
 
   public async createCoverLetterDoc(content: string, job: Job): Promise<string> {
     try {
+      const session = await auth();
+      const userName = session?.user?.name || 'Unknown User';
       // Copy the template
       const copyResponse = await this.driveClient.files.copy({
         fileId: this.templateId,
         requestBody: {
-          name: `Cover Letter - ${job.title} - ${new Date().toLocaleDateString()}`,
+          name: `${userName}_Schreiben_${job.company}_${new Date().toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', year: '2-digit' })}`,
           parents: [this.folderId]
         }
       });
@@ -79,6 +82,7 @@ export class GoogleDocsService {
       '{{ADDRESS}}': job.address || '',
       '{{DATE}}': today,
       '{{TITLE}}': job.title,
+      '{{WORKLOAD}}': job.workload || '',
       '{{GREETING}}': 'Sehr geehrte Damen und Herren',
       '{{CONTENT}}': content,
       '{{SALUTE}}': 'Freundliche Grüsse',
