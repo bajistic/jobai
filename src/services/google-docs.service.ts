@@ -81,7 +81,7 @@ export class GoogleDocsService {
     const placeholders = {
       '{{ADDRESS}}': job.address || '',
       '{{DATE}}': today,
-      '{{TITLE}}': job.title,
+      '{{TITLE}}': 'Bewerbung als ' + job.title,
       '{{WORKLOAD}}': job.workload || '',
       '{{GREETING}}': 'Sehr geehrte Damen und Herren',
       '{{CONTENT}}': content,

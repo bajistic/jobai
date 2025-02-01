@@ -291,7 +291,7 @@ export class OpenAIService {
       onProgress?.({ progress: 40, status: 'Adding message to thread...' });
       await this.openai.beta.threads.messages.create(thread.id, {
         role: "user",
-        content: `Inserat: ${job.description}\nAnmerkungen: ${notes}`
+        content: `Inserat: ${job.description}\nWichtige Anmerkungen: ${notes}`
       });
 
       onProgress?.({ progress: 50, status: 'Starting assistant run...' });

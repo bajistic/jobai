@@ -67,7 +67,7 @@ Here's the SQL query to migrate ratings from the jobs table to the job_preferenc
   SELECT
       id as job_id,
       'DEFAULT_USER_ID' as user_id, -- Replace with actual user ID
-      rating as ranking
+      ranking as ranking
   FROM jobs
   WHERE rating IS NOT NULL
   ON CONFLICT (user_id, job_id) DO UPDATE
