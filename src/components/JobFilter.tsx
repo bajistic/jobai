@@ -25,7 +25,7 @@ function JobFilterContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { fetchJobs } = useJobs()
-  
+
   const [filters, setFilters] = useState<JobFilterType>({
     location: searchParams.get('location') || '',
     ranking: searchParams.get('ranking') || '',
@@ -33,7 +33,7 @@ function JobFilterContent() {
 
   const [localFilters, setLocalFilters] = useState(filters)
 
-  // Update local filters when URL params change
+  // Update local filters and fetch jobs when URL params change or on mount
   useEffect(() => {
     const newFilters = {
       location: searchParams.get('location') || '',
@@ -41,11 +41,19 @@ function JobFilterContent() {
     }
     setLocalFilters(newFilters)
     setFilters(newFilters)
-  }, [searchParams])
+
+    // Fetch jobs with current URL params
+    fetchJobs({
+      ...newFilters,
+      page: Number(searchParams.get('page')) || 1,
+      pageSize: 10
+    })
+  }, [searchParams, fetchJobs])
 
   const applyFilters = () => {
+    debugger;
     const params = new URLSearchParams()
-    
+
     // Only add non-empty values to params
     Object.entries(localFilters).forEach(([key, value]) => {
       if (value && typeof value === 'string' && value.trim()) {
@@ -120,6 +128,8 @@ function JobFilterContent() {
   )
 }
 
+// JobFilter Wrapper 
+//
 export function JobFilter() {
   return (
     <Suspense fallback={<div>Loading filters...</div>}>

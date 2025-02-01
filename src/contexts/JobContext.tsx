@@ -35,20 +35,20 @@ const JobContext = createContext<JobContextType>({
   pagination: {
     currentPage: 1,
     totalPages: 1,
-    handlePageChange: () => {},
+    handlePageChange: () => { },
     getPageNumbers: () => [],
     hasNextPage: false,
     hasPrevPage: false
   },
   fetchJobs: async (options?: JobFetchOptions) => undefined,
-  setSelectedJobId: () => {},
-  updateJobStatus: async () => {},
-  fetchUnrankedJobs: async () => {},
-  rankJob: async () => {},
+  setSelectedJobId: () => { },
+  updateJobStatus: async () => { },
+  fetchUnrankedJobs: async () => { },
+  rankJob: async () => { },
 })
 
 // Create a separate component for the parts that need useSearchParams
-function JobProviderContent({ 
+function JobProviderContent({
   children,
   setJobs,
   setTotalJobs,
@@ -87,9 +87,14 @@ function JobProviderContent({
       if (options.onlyStarred) params.set('onlyStarred', 'true')
       if (options.showHidden) params.set('showHidden', 'true')
       if (options.status) params.set('status', options.status)
-      if (options.location) params.set('location', options.location)
-      if (options.ranking && options.ranking !== 'all') params.set('ranking', options.ranking)
-      params.set('page', String(currentPage))
+
+      // Get current filters from URL if not provided in options
+      const location = options.location ?? searchParams.get('location') ?? ''
+      const ranking = options.ranking ?? searchParams.get('ranking') ?? ''
+
+      if (location) params.set('location', location)
+      if (ranking && ranking !== 'all') params.set('ranking', ranking)
+      params.set('page', String(options.page || currentPage))
       params.set('pageSize', String(itemsPerPage))
 
       const response = await fetch(`/api/jobs?${params.toString()}`)
@@ -189,11 +194,11 @@ function JobProviderContent({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ranking }),
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to rank job');
       }
-      
+
       // Refresh jobs list after ranking
       await fetchJobs();
     } catch (error) {
