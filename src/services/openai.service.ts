@@ -39,7 +39,7 @@ export class OpenAIService {
     this.openai = new OpenAI({
       apiKey: config.openaiApiKey,
     });
-    
+
   }
 
   public static getInstance(): OpenAIService {
@@ -87,11 +87,11 @@ export class OpenAIService {
             userId,
             vectorStoreId,
             fileIds,
-        },
-        update: {
-          fileIds: {
-            push: fileIds
           },
+          update: {
+            fileIds: {
+              push: fileIds
+            },
           },
         });
       }
@@ -208,7 +208,7 @@ export class OpenAIService {
 
       // Store in database
       await prisma.userAssistant.upsert({
-        where: { 
+        where: {
           userId_assistantName: {
             userId,
             assistantName: `JobRanker_${userId}`
@@ -243,7 +243,7 @@ export class OpenAIService {
 
       // Store in database
       await prisma.userAssistant.upsert({
-        where: { 
+        where: {
           userId_assistantName: {
             userId,
             assistantName: `Composer_${userId}`
@@ -275,7 +275,7 @@ export class OpenAIService {
     try {
       // Get user's assistant
       const assistant = await prisma.userAssistant.findFirst({
-        where: { 
+        where: {
           userId,
           assistantName: `Composer_${userId}`
         }
@@ -309,7 +309,7 @@ export class OpenAIService {
       onProgress?.({ progress: 70, status: 'Retrieving response...' });
       const messages = await this.openai.beta.threads.messages.list(thread.id);
       const content = messages.data[0].content[0];
-      
+
       if (content.type !== 'text') {
         throw new Error('Unexpected response type');
       }
@@ -330,10 +330,10 @@ export class OpenAIService {
       throw error;
     }
   }
-  
+
   public async rankJob(job: Job, userId: string): Promise<JobRanking> {
     const assistant = await prisma.userAssistant.findFirst({
-      where: { 
+      where: {
         userId,
         assistantName: `JobRanker_${userId}`
       }

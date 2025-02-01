@@ -2,8 +2,7 @@
 
 import { Job } from '@/lib/types/shared'
 import { useState } from 'react'
-import Link from 'next/link'
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, JobTitleLink } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -103,7 +102,7 @@ export function JobCard({ job, onUpdate, isSelected, onSelect }: JobCardProps) {
 
   return (
     <>
-      <Card 
+      <Card
         className={cn(
           "cursor-pointer hover:bg-accent/50 transition-colors",
           job.isHidden && "opacity-50",
@@ -112,14 +111,14 @@ export function JobCard({ job, onUpdate, isSelected, onSelect }: JobCardProps) {
         onClick={() => onSelect?.(job)}
       >
         <CardHeader className="pb-2 flex flex-row justify-between items-start">
-          <CardTitle className="text-lg font-semibold">
+          <JobTitleLink className="text-lg font-semibold">
             {job.title}
             {job.status && (
               <Badge variant="secondary" className="ml-2">
                 {job.status}
               </Badge>
             )}
-          </CardTitle>
+          </JobTitleLink>
           <DropdownMenu>
             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
               <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -158,7 +157,7 @@ export function JobCard({ job, onUpdate, isSelected, onSelect }: JobCardProps) {
               }) : 'No date'}
             </p>
             {job.isStarred && (
-              <Badge 
+              <Badge
                 variant="secondary"
                 className="cursor-pointer hover:bg-accent"
                 onClick={(e) => {
@@ -215,4 +214,4 @@ export function JobCard({ job, onUpdate, isSelected, onSelect }: JobCardProps) {
       />
     </>
   )
-} 
+}
