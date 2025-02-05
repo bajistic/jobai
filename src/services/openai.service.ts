@@ -13,11 +13,6 @@ interface Assistant {
   description: string;
 }
 
-interface Assistants {
-  composer: Assistant;
-  ranker: Assistant;
-}
-
 interface JobRanking {
   ranking: "bingo" | "good" | "okay" | "bad";
   canton: string;
@@ -28,7 +23,6 @@ const jobRankingSchema = z.object({
   canton: z.string(),
 });
 
-const ASSISTANT_ID = "asst_ycM57UoS5QGUBoSxepUAXvsJ"; // Cover Letter Composer ID
 const MAX_COMPLETION_ATTEMPTS = 30;
 const COMPLETION_CHECK_INTERVAL = 1000; // 1 second
 
@@ -40,25 +34,12 @@ interface ProgressUpdate {
 export class OpenAIService {
   private static instance: OpenAIService;
   private openai: OpenAI;
-  private assistants: Assistants;
 
   private constructor() {
     this.openai = new OpenAI({
       apiKey: config.openaiApiKey,
     });
-    
-    this.assistants = {
-      composer: {
-        id: "asst_ycM57UoS5QGUBoSxepUAXvsJ",
-        name: "Cover Letter Composer",
-        description: "Generates cover letters based on job descriptions"
-      },
-      ranker: {
-        id: "asst_lRapp9wkqB88a3HAZO8ahcV9", // Replace with your actual ranker assistant ID
-        name: "Job Ranker",
-        description: "Ranks jobs based on criteria"
-      }
-    };
+
   }
 
   public static getInstance(): OpenAIService {
@@ -106,11 +87,11 @@ export class OpenAIService {
             userId,
             vectorStoreId,
             fileIds,
-        },
-        update: {
-          fileIds: {
-            push: fileIds
           },
+          update: {
+            fileIds: {
+              push: fileIds
+            },
           },
         });
       }
@@ -227,7 +208,7 @@ export class OpenAIService {
 
       // Store in database
       await prisma.userAssistant.upsert({
-        where: { 
+        where: {
           userId_assistantName: {
             userId,
             assistantName: `JobRanker_${userId}`
@@ -262,7 +243,7 @@ export class OpenAIService {
 
       // Store in database
       await prisma.userAssistant.upsert({
-        where: { 
+        where: {
           userId_assistantName: {
             userId,
             assistantName: `Composer_${userId}`
@@ -294,7 +275,7 @@ export class OpenAIService {
     try {
       // Get user's assistant
       const assistant = await prisma.userAssistant.findFirst({
-        where: { 
+        where: {
           userId,
           assistantName: `Composer_${userId}`
         }
@@ -310,44 +291,49 @@ export class OpenAIService {
       onProgress?.({ progress: 40, status: 'Adding message to thread...' });
       await this.openai.beta.threads.messages.create(thread.id, {
         role: "user",
-        content: `Inserat: ${job.description}\nAnmerkungen: ${notes}`
+        content: `Inserat: ${job.description}\nWichtige Anmerkungen: ${notes}`
       });
 
-      onProgress?.({ progress: 60, status: 'Starting assistant run...' });
+      onProgress?.({ progress: 50, status: 'Starting assistant run...' });
       const run = await this.openai.beta.threads.runs.create(thread.id, {
         assistant_id: assistant.assistantId,
       });
 
-      onProgress?.({ progress: 70, status: 'Waiting for completion...' });
+      onProgress?.({ progress: 60, status: 'Waiting for completion...' });
       const runStatus = await this.waitForCompletion(thread.id, run.id);
 
       if (runStatus.status !== 'completed') {
         throw new Error('Generation timeout or failed');
       }
 
-      onProgress?.({ progress: 80, status: 'Retrieving response...' });
+      onProgress?.({ progress: 70, status: 'Retrieving response...' });
       const messages = await this.openai.beta.threads.messages.list(thread.id);
       const content = messages.data[0].content[0];
-      
+
       if (content.type !== 'text') {
         throw new Error('Unexpected response type');
       }
 
+      // Clean the text by removing file reference indicators
+      const cleanedText = content.text.value
+        .replace(/【.*?】/g, '') // Remove file reference indicators
+        .replace(/ß/g, 'ss');   // Replace 'ß' with 'ss'
+
       onProgress?.({ progress: 90, status: 'Creating Google Doc...' });
       const googleDocsService = GoogleDocsService.getInstance();
-      const docs_url = await googleDocsService.createCoverLetterDoc(content.text.value, job);
+      const docs_url = await googleDocsService.createCoverLetterDoc(cleanedText, job);
 
       onProgress?.({ progress: 100, status: 'Cover letter generation completed successfully' });
-      return { content: content.text.value, docs_url };
+      return { content: cleanedText, docs_url };
     } catch (error) {
       console.error('Cover letter generation failed:', error);
       throw error;
     }
   }
-  
+
   public async rankJob(job: Job, userId: string): Promise<JobRanking> {
     const assistant = await prisma.userAssistant.findFirst({
-      where: { 
+      where: {
         userId,
         assistantName: `JobRanker_${userId}`
       }

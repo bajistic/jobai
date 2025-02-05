@@ -91,6 +91,13 @@ export default function Sidebar() {
             </CollapsibleContent>
           </Collapsible>
 
+          <Button variant="ghost" className="w-full justify-start" asChild>
+            <Link href="/jobs/rank">
+              <ListFilter className="h-4 w-4 mr-2" />
+              <span className={cn(!isOpen && "hidden")}>Rank Jobs</span>
+            </Link>
+          </Button>
+
           {session?.user?.email === "bbayarbileg@gmail.com" && (
             <Button variant="ghost" className="w-full justify-start" asChild>
               <Link href="/scrape">

@@ -17,20 +17,20 @@ export default function JobsPage() {
   return (
     <div className="flex flex-1 overflow-hidden">
       <div className="w-1/3 border-r">
-        <JobList 
-          jobs={jobs} 
+        <JobList
+          jobs={jobs}
           loading={loading}
-          onSelectJob={(job) => setSelectedJobId(job.id)} 
+          onSelectJob={(job) => setSelectedJobId(job.id)}
           selectedJobId={selectedJobId}
           totalJobs={totalJobs}
         />
       </div>
       <div className="flex-1">
-        <JobPreview 
+        <JobPreview
           selectedJob={jobs.find(job => job.id === selectedJobId) || null}
           onBack={() => setSelectedJobId(null)}
         />
       </div>
     </div>
   )
-} 
+}

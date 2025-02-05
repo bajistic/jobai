@@ -17,6 +17,7 @@ export function ScrapingTrigger() {
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState<ScrapeStatus | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
+  const [isStopping, setIsStopping] = useState(false);
 
   const fetchStatus = async () => {
     try {
@@ -60,6 +61,19 @@ export function ScrapingTrigger() {
     }
   };
 
+  const handleStop = async () => {
+    setIsStopping(true);
+    try {
+      const response = await fetch('/api/scraper/stop', { method: 'POST' });
+      if (!response.ok) throw new Error('Failed to stop scraping');
+      console.log('Scraper stopped');
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsStopping(false);
+    }
+  };
+
   return (
     <div className="space-y-2">
       <div className="flex gap-2 items-center">
@@ -93,6 +107,15 @@ export function ScrapingTrigger() {
           )}
         </div>
       )}
+
+      <div className="flex gap-2 items-center">
+        <Button 
+          onClick={handleStop}
+          disabled={isStopping}
+        >
+          {isStopping ? 'Stopping...' : 'Stop Scraping'}
+        </Button>
+      </div>
     </div>
   );
 } 
