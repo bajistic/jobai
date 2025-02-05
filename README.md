@@ -1,3 +1,14 @@
+# TODO: Add a link to the documentation for the frontend
+- [ ] fix filter by url params
+- [ ] applied status
+- [ ] 02.02.2025 add external jobs by url
+- [ ] cover letter dialog
+- [ ] scrape jobs > ansprechperson
+- [ ] generate responses for questions like
+- [ ] interview vorbereitung
+- [ ] applied timestamp
+- [ ] user rank jobs
+
 ## Main Components
 
 1. JobContext: Manages job-related state and operations. It uses a split provider pattern, which I remember from earlier discussions. The provider handles fetching jobs, pagination, and status updates.
@@ -302,3 +313,5 @@ API Documentation
 
     deployment.md
     troubleshooting.md
+
+
