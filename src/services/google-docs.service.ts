@@ -67,7 +67,8 @@ export class GoogleDocsService {
         type: 'user',
         emailAddress: config.googleServiceAccount.userEmail
       },
-      supportsAllDrives: true
+      supportsAllDrives: true,
+      sendNotificationEmail: false
     });
   }
 
