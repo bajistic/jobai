@@ -30,6 +30,25 @@ export function GenerateLetterDialog({ open, onOpenChange, job }: GenerateLetter
   const [progressStatus, setProgressStatus] = useState('');
 
   useEffect(() => {
+    const fetchLatestLetter = async () => {
+      if (!job) return;
+      
+      setIsLoading(true);
+      try {
+        const response = await fetch(`/api/jobs/${job.id}/cover-letter`);
+        const data = await response.json();
+        
+        if (data.letter) {
+          setLetter(data.letter);
+        }
+      } catch (error) {
+        console.error('Error fetching letter:', error);
+        toast.error('Failed to load cover letter');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
     if (open && job) {
       fetchLatestLetter();
     }
@@ -37,7 +56,7 @@ export function GenerateLetterDialog({ open, onOpenChange, job }: GenerateLetter
 
   const fetchLatestLetter = async () => {
     if (!job) return;
-
+    
     setIsLoading(true);
     try {
       const response = await fetch(`/api/jobs/${job.id}/cover-letter`);
