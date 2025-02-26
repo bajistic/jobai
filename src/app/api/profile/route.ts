@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { OpenAIService } from '@/services/openai.service'
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const session = await auth()
     const userId = session?.user?.id;
@@ -91,7 +91,7 @@ export async function PUT(request: Request) {
   }
 }
 
-export async function DELETE(request: Request) {
+export async function DELETE() {
   try {
     const session = await auth()
     const userId = session?.user?.id;

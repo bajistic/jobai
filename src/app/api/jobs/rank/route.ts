@@ -12,7 +12,7 @@ import { Job } from "@/lib/types/shared";
  *   Ranks the specified job using OpenAI, stores it in job_preferences, and returns the ranking.
  */
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await auth();
     if (!session?.user?.id) {
