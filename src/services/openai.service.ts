@@ -387,6 +387,73 @@ Bemerkung: Keine Jobs von Stellenvermittler und Temporärbüros. Keine Praktikum
     }
   }
 
+  /**
+   * Fast version of rankJob that uses a preconfigured assistant
+   * to avoid redundant verification and creation steps
+   */
+  public async rankJobWithAssistant(job: Job, assistantId: string): Promise<JobRanking> {
+    try {
+      // Format the job information
+      const jobInfo = `
+Titel: ${job.title || 'Keine Angabe'}
+Firma: ${job.company || 'Keine Angabe'}
+Ort: ${job.location || 'Keine Angabe'}
+Arbeitspensum: ${job.workload || 'Keine Angabe'}
+Veröffentlicht: ${job.published ? new Date(job.published).toLocaleDateString() : 'Keine Angabe'}
+
+Beschreibung: 
+${job.description || 'Keine Beschreibung verfügbar'}
+`;
+
+      // Create a thread and add the job information
+      const thread = await this.openai.beta.threads.create();
+      await this.openai.beta.threads.messages.create(thread.id, {
+        role: "user",
+        content: jobInfo
+      });
+
+      // Start the run with the assistant
+      const run = await this.openai.beta.threads.runs.create(thread.id, {
+        assistant_id: assistantId,
+      });
+
+      // Wait for the run to complete
+      const runStatus = await this.waitForCompletion(thread.id, run.id);
+      
+      if (runStatus.status !== "completed") {
+        throw new Error("Job ranking not completed");
+      }
+      
+      // Get the response message
+      const messages = await this.openai.beta.threads.messages.list(thread.id);
+      if (messages.data.length === 0) {
+        throw new Error("No response received");
+      }
+      
+      const content = messages.data[0].content[0];
+      if (content.type !== "text") {
+        throw new Error("Unexpected response type");
+      }
+      
+      // Parse the JSON response
+      try {
+        // Clean up the response
+        let responseText = content.text.value;
+        responseText = responseText.replace(/```json\s*|\s*```/g, '');
+        responseText = responseText.trim();
+        
+        const json = JSON.parse(responseText);
+        return jobRankingSchema.parse(json) as JobRanking;
+      } catch (error) {
+        console.error("Failed to parse response:", error);
+        return { ranking: "okay", canton: "N/A" };
+      }
+    } catch (error) {
+      console.error("Error in rankJobWithAssistant:", error);
+      return { ranking: "okay", canton: "N/A" };
+    }
+  }
+  
   public async rankJob(job: Job, userId: string): Promise<JobRanking> {
     try {
       const assistant = await prisma.userAssistant.findFirst({

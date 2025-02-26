@@ -28,10 +28,67 @@ export class ScraperService {
     lastRun: null,
     forceStop: false
   };
+  
+  // Status persistence key for localStorage
+  private readonly STATUS_STORAGE_KEY = 'scraper_status';
 
   private constructor() {
     this.turndownService = new TurndownService();
     this.openai = OpenAIService.getInstance();
+    
+    // Try to restore status from localStorage if we're in a browser environment
+    this.restoreStatus();
+  }
+  
+  // Save status to localStorage
+  private saveStatus(): void {
+    if (typeof window !== 'undefined') {
+      try {
+        const statusCopy = {
+          ...this.status,
+          lastRun: this.status.lastRun ? this.status.lastRun.toISOString() : null
+        };
+        localStorage.setItem(this.STATUS_STORAGE_KEY, JSON.stringify(statusCopy));
+        console.log('Scraper status saved to localStorage');
+      } catch (error) {
+        console.error('Failed to save scraper status:', error);
+      }
+    }
+  }
+  
+  // Restore status from localStorage
+  private restoreStatus(): void {
+    if (typeof window !== 'undefined') {
+      try {
+        const savedStatus = localStorage.getItem(this.STATUS_STORAGE_KEY);
+        if (savedStatus) {
+          const parsedStatus = JSON.parse(savedStatus);
+          // Convert lastRun string back to Date if it exists
+          if (parsedStatus.lastRun) {
+            parsedStatus.lastRun = new Date(parsedStatus.lastRun);
+          }
+          
+          console.log('Restored scraper status from localStorage:', parsedStatus);
+          
+          // If the saved status shows running but it's been more than 30 minutes, 
+          // assume it crashed and reset isRunning to false
+          if (parsedStatus.isRunning && parsedStatus.lastRun) {
+            const thirtyMinutesAgo = new Date();
+            thirtyMinutesAgo.setMinutes(thirtyMinutesAgo.getMinutes() - 30);
+            
+            if (new Date(parsedStatus.lastRun) < thirtyMinutesAgo) {
+              console.log('Scraper status was running but appears stale (>30 min old), resetting to idle');
+              parsedStatus.isRunning = false;
+              parsedStatus.lastRun = new Date();
+            }
+          }
+          
+          this.status = { ...this.status, ...parsedStatus };
+        }
+      } catch (error) {
+        console.error('Failed to restore scraper status:', error);
+      }
+    }
   }
 
   public static getInstance(): ScraperService {
@@ -43,12 +100,14 @@ export class ScraperService {
 
   getStatus(): ScrapeStatus {
     // Create a deep copy to ensure we don't return a reference to the internal status
-    return {
+    const status = {
       isRunning: this.status.isRunning,
       totalJobs: this.status.totalJobs,
       currentPage: this.status.currentPage,
       lastRun: this.status.lastRun ? new Date(this.status.lastRun).toISOString() : null
     };
+    
+    return status;
   }
   
   // Method to directly update the status (used for force reset)
@@ -57,6 +116,9 @@ export class ScraperService {
     if (status.currentPage !== undefined) this.status.currentPage = status.currentPage;
     if (status.totalJobs !== undefined) this.status.totalJobs = status.totalJobs;
     if (status.lastRun !== undefined) this.status.lastRun = new Date(status.lastRun);
+    
+    // Save the updated status to localStorage
+    this.saveStatus();
   }
 
   async stopScraping() {
@@ -81,10 +143,60 @@ export class ScraperService {
     return { success: true, message: 'Scraper stopping...' };
   }
 
-  private async processJob(job: Job, userId: string) {
+  // Method to prepare assistant and ensure it exists for the scraping session
+  private async prepareAssistant(userId: string) {
+    try {
+      // Check if assistant exists for this user
+      const assistant = await prisma.userAssistant.findFirst({
+        where: {
+          userId,
+          assistantName: `JobRanker_${userId}`
+        }
+      });
+      
+      if (!assistant) {
+        console.log(`No assistant found for user ${userId}, creating new one...`);
+        // Create a new assistant
+        const assistantId = await this.openai.createJobRankingAssistant(userId);
+        return { assistantId, assistantName: `JobRanker_${userId}` };
+      }
+      
+      // Verify the assistant exists in OpenAI
+      try {
+        await this.openai.beta.assistants.retrieve(assistant.assistantId);
+        console.log(`Using existing assistant: ${assistant.assistantName} with ID: ${assistant.assistantId}`);
+        return assistant;
+      } catch (error) {
+        console.error(`Assistant ${assistant.assistantId} not found in OpenAI, creating new one...`);
+        // Create a new assistant
+        const newAssistantId = await this.openai.createJobRankingAssistant(userId);
+        
+        // Update the assistant ID in the database
+        await prisma.userAssistant.update({
+          where: { id: assistant.id },
+          data: { assistantId: newAssistantId }
+        });
+        
+        return { ...assistant, assistantId: newAssistantId };
+      }
+    } catch (error) {
+      console.error('Error preparing assistant:', error);
+      return null;
+    }
+  }
+  
+  private async processJob(job: Job, userId: string, preparedAssistant?: any) {
     try {
       // Rank the job using OpenAI
-      const response = await this.openai.rankJob(job, userId);
+      let response;
+      if (preparedAssistant) {
+        // Use the prepared assistant for faster processing
+        response = await this.openai.rankJobWithAssistant(job, preparedAssistant.assistantId);
+      } else {
+        // Fall back to normal ranking if no prepared assistant
+        response = await this.openai.rankJob(job, userId);
+      }
+      
       job.ranking = response.ranking;
       job.canton = response.canton;
 
@@ -214,6 +326,9 @@ export class ScraperService {
     this.status.isRunning = true;
     this.status.currentPage = 1;
     this.status.totalJobs = 0;
+    
+    // Save the updated status to localStorage
+    this.saveStatus();
 
     try {
       const browser = await chromium.launch({ 
@@ -245,12 +360,23 @@ export class ScraperService {
     } finally {
       this.status.isRunning = false;
       this.status.lastRun = new Date();
+      
+      // Save final status to localStorage
+      this.saveStatus();
     }
   } 
 
   private async scrapeJobs(page: Page, pageNumber: number, userId: string) {
     // Reset force stop flag
     this.status.forceStop = false;
+    
+    // Prepare OpenAI assistant
+    console.log('Preparing OpenAI assistant for batch processing...');
+    const assistant = await this.prepareAssistant(userId);
+    if (!assistant) {
+      console.error('Failed to prepare assistant, aborting scrape');
+      return;
+    }
     
     // Start scraping
     const baseUrl = "https://www.jobs.ch/en/vacancies/?employment-type=1&employment-type=5&region=2&term=";
@@ -302,8 +428,11 @@ export class ScraperService {
             job.id = jobId;
             
             // Now process the job with ranking
-            await this.processJob(job, userId);
+            await this.processJob(job, userId, assistant);
             this.status.totalJobs++;
+            
+            // Update localStorage with latest job count
+            this.saveStatus();
             if (!this.status.isRunning) {
               console.log('Scraper is not running, stopping...');
               break;
