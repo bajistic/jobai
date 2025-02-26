@@ -14,7 +14,7 @@ export function JobPagination() {
   const { totalJobs, pagination } = useJobs()
   const { 
     currentPage, 
-    totalPages, 
+    // totalPages, - unused variable
     handlePageChange, 
     getPageNumbers,
     hasNextPage,

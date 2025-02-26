@@ -26,23 +26,23 @@ export default function JobList({ jobs, loading, onSelectJob, selectedJobId, tot
   
   const totalPages = Math.max(1, Math.ceil(totalJobs / jobsPerPage))
 
-  const handlePageChange = (page: number) => {
-    const params = new URLSearchParams(searchParams.toString())
-    params.set('page', page.toString())
-    if (location) {
-      params.set('location', location)
-    }
-    router.push(`?${params.toString()}`, { scroll: false })
-  }
-
   // Ensure current page is within valid range
   useEffect(() => {
+    const handlePageChange = (page: number) => {
+      const params = new URLSearchParams(searchParams.toString())
+      params.set('page', page.toString())
+      if (location) {
+        params.set('location', location)
+      }
+      router.push(`?${params.toString()}`, { scroll: false })
+    }
+    
     if (currentPage > totalPages) {
       handlePageChange(totalPages)
     } else if (currentPage < 1) {
       handlePageChange(1)
     }
-  }, [currentPage, totalPages])
+  }, [currentPage, totalPages, searchParams, location, router])
 
   return (
     <Suspense fallback={<div>Loading...</div>}>

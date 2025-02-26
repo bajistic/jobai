@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Job } from "@/lib/types/shared";
 import { useJobs } from "@/contexts/JobContext";
 import { ScrollArea } from "@/components/ui/scroll-area";
 

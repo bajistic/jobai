@@ -1,7 +1,7 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
-import { redirect } from 'next/navigation';
+// import { redirect } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrapingTrigger } from '@/components/ScrapingTrigger';
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -17,15 +17,13 @@ interface ScrapedJob {
 }
 
 export default function ScrapePage() {
-  const { data: session } = useSession();
+  // const { data: session } = useSession();
+  useSession();
   const [scrapingHistory, setScrapingHistory] = useState<ScrapedJob[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetchHistory();
-  }, []);
-
-  const fetchHistory = async () => {
+    const fetchHistory = async () => {
     try {
       const response = await fetch('/api/scraper?type=history');
       if (!response.ok) throw new Error('Failed to fetch history');
@@ -36,10 +34,13 @@ export default function ScrapePage() {
     } finally {
       setIsLoading(false);
     }
-  };
+    };
+    
+    fetchHistory();
+  }, []);
 
-  // Protect the route - only allow user ID 1
-/*   if (!session?.user?.group || session.user.group !== "admin") {
+  // Uncomment to protect the route - only allow admin users
+  /* if (!session?.user?.group || session.user.group !== "admin") {
     redirect('/');
   } */
 
@@ -51,9 +52,7 @@ export default function ScrapePage() {
             <CardTitle>Job Scraper Controls</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center space-x-4">
-              <ScrapingTrigger />
-            </div>
+            <ScrapingTrigger />
           </CardContent>
         </Card>
 

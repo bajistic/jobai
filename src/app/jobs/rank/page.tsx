@@ -29,9 +29,9 @@ export default function RankJobsPage() {
       } else {
         setJob(data.job);
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error:", error);
-      setMessage(error.message);
+      setMessage(error instanceof Error ? error.message : "An unknown error occurred");
     } finally {
       setLoading(false);
     }
@@ -61,9 +61,9 @@ export default function RankJobsPage() {
 
       // Fetch the next job immediately
       await fetchNextUnrankedJob();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error:", error);
-      setMessage(error.message);
+      setMessage(error instanceof Error ? error.message : "An unknown error occurred");
     } finally {
       setLoading(false);
     }

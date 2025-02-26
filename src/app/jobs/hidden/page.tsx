@@ -1,8 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useEffect, useState } from 'react'
-import { Job } from '@/lib/types/shared'
+import { useEffect } from 'react'
 import { useJobs } from '@/contexts/JobContext'
 
 const JobList = dynamic(() => import('@/components/JobList'), { ssr: false })

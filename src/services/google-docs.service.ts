@@ -102,4 +102,4 @@ export class GoogleDocsService {
       requestBody: { requests }
     });
   }
-} 
+}
