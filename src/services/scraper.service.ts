@@ -10,6 +10,7 @@ interface ScrapeStatus {
   totalJobs: number;
   currentPage: number;
   lastRun: Date | null;
+  forceStop?: boolean;
 }
 
 export class ScraperService {
@@ -24,7 +25,8 @@ export class ScraperService {
     isRunning: false,
     totalJobs: 0,
     currentPage: 0,
-    lastRun: null
+    lastRun: null,
+    forceStop: false
   };
 
   private constructor() {
@@ -40,47 +42,165 @@ export class ScraperService {
   }
 
   getStatus(): ScrapeStatus {
-    return this.status;
+    // Create a deep copy to ensure we don't return a reference to the internal status
+    return {
+      isRunning: this.status.isRunning,
+      totalJobs: this.status.totalJobs,
+      currentPage: this.status.currentPage,
+      lastRun: this.status.lastRun ? new Date(this.status.lastRun).toISOString() : null
+    };
+  }
+  
+  // Method to directly update the status (used for force reset)
+  setStatus(status: Partial<ScrapeStatus>): void {
+    if (status.isRunning !== undefined) this.status.isRunning = status.isRunning;
+    if (status.currentPage !== undefined) this.status.currentPage = status.currentPage;
+    if (status.totalJobs !== undefined) this.status.totalJobs = status.totalJobs;
+    if (status.lastRun !== undefined) this.status.lastRun = new Date(status.lastRun);
   }
 
   async stopScraping() {
+    console.log('Stopping scraper...');
+    
+    // Set flag to stop scraping
     this.status.isRunning = false;
+    
+    // Force process cleanup if possible
+    try {
+      // This will trigger immediate stopping when the loop checks the running condition
+      this.status.forceStop = true;
+      
+      console.log('Scraper stop flag set. It will stop on the next loop iteration.');
+      
+      // Set last run time
+      this.status.lastRun = new Date();
+    } catch (error) {
+      console.error('Error during scraper stop:', error);
+    }
+    
+    return { success: true, message: 'Scraper stopping...' };
   }
 
   private async processJob(job: Job, userId: string) {
-    // const response = await this.openai.rankJob(job as unknown as Job, userId);
-    // job.ranking = response.ranking;
-    // job.canton = response.canton;
+    try {
+      // Rank the job using OpenAI
+      const response = await this.openai.rankJob(job, userId);
+      job.ranking = response.ranking;
+      job.canton = response.canton;
 
-    const emoji =
-      job.ranking === "bingo"
-        ? "🎯"
-        : job.ranking === "good"
-        ? "🌟"
-        : job.ranking === "okay"
-        ? "👍"
-        : "👎";
-    console.log(`${emoji} ${job.title} (${job.published ? job.published.toLocaleDateString() : 'No date'})`);
+      // Visual feedback in the console based on ranking
+      const emoji =
+        job.ranking === "bingo"
+          ? "🎯"
+          : job.ranking === "good"
+          ? "🌟"
+          : job.ranking === "okay"
+          ? "👍"
+          : "👎";
+      console.log(`${emoji} ${job.title} (${job.published ? job.published.toLocaleDateString() : 'No date'})`);
 
-    await this.saveJob(job);
+      // Save the job with ranking data
+      await this.saveJob(job);
+      
+      // Create user-specific job preference with ranking
+      await this.createJobPreference(job, userId);
+    } catch (error) {
+      console.error(`Error processing job "${job.title}":`, error);
+      // Save job anyway but with default "bad" ranking
+      await this.saveJob(job);
+    }
   }
 
-  private async saveJob(job: Partial<Job>): Promise<void> {
-    await prisma.jobs.create({
-      data: {
-        title: job.title || '',
-        company: job.company || '',
-        location: job.location || '',
-        description: job.description || '',
-        url: job.url || '',
-        published: job.published,
-        workload: job.workload,
-        contract: job.contract,
-        canton: job.canton,
-        categories: job.categories?.join(','),
-        status: 'new',
-        address: job.address,
+  private async saveJob(job: Partial<Job>): Promise<number> {
+    try {
+      // First check if a job with this URL already exists
+      if (job.url) {
+        const existingJob = await prisma.jobs.findUnique({
+          where: { url: job.url }
+        });
+        
+        if (existingJob) {
+          // Update the existing job with new information
+          const updatedJob = await prisma.jobs.update({
+            where: { id: existingJob.id },
+            data: {
+              // Only update fields if they're provided
+              ...(job.title && { title: job.title }),
+              ...(job.company && { company: job.company }),
+              ...(job.location && { location: job.location }),
+              ...(job.description && { description: job.description }),
+              ...(job.published && { published: job.published }),
+              ...(job.workload && { workload: job.workload }),
+              ...(job.contract && { contract: job.contract }),
+              ...(job.canton && { canton: job.canton }),
+              ...(job.categories && { categories: job.categories.join(',') }),
+              ...(job.address && { address: job.address }),
+              ...(job.ranking && { ranking: job.ranking }),
+            }
+          });
+          return updatedJob.id;
+        }
       }
+      
+      // If no existing job found, create a new one
+      const savedJob = await prisma.jobs.create({
+        data: {
+          title: job.title || '',
+          company: job.company || '',
+          location: job.location || '',
+          description: job.description || '',
+          url: job.url || '',
+          published: job.published,
+          workload: job.workload,
+          contract: job.contract,
+          canton: job.canton || 'N/A',
+          categories: job.categories?.join(','),
+          status: 'new',
+          address: job.address,
+          ranking: job.ranking || 'bad', // Include ranking in the saved job
+        }
+      });
+      
+      return savedJob.id;
+    } catch (error) {
+      console.error(`Error saving job "${job.title}":`, error);
+      // If it's a unique constraint error, try to find the existing job and return its ID
+      if (error.code === 'P2002' && job.url) {
+        const existingJob = await prisma.jobs.findUnique({
+          where: { url: job.url }
+        });
+        if (existingJob) {
+          console.log(`Found existing job with URL ${job.url}, ID: ${existingJob.id}`);
+          return existingJob.id;
+        }
+      }
+      throw error;
+    }
+  }
+
+  private async createJobPreference(job: Job, userId: string): Promise<void> {
+    if (!job.id) {
+      console.warn('Job ID is missing, cannot create job preference');
+      return;
+    }
+    
+    // Create or update job preference for this user
+    await prisma.job_preferences.upsert({
+      where: {
+        job_id_user_id: {
+          job_id: job.id,
+          user_id: userId,
+        },
+      },
+      create: {
+        job_id: job.id,
+        user_id: userId,
+        ranking: job.ranking,
+        status: 'new',
+      },
+      update: {
+        ranking: job.ranking,
+      },
     });
   }
 
@@ -114,9 +234,12 @@ export class ScraperService {
       });
       const page = await context.newPage();
 
-      await this.scrapeJobs(page, pageNumber, userId)
-
+      await this.scrapeJobs(page, pageNumber, userId);
+      
+      // Make sure to close the browser even if scraping was stopped
+      console.log('Closing browser...');
       await browser.close();
+      console.log('Browser closed');
     } catch (error) {
       console.error('Scraping failed:', error);
     } finally {
@@ -126,15 +249,19 @@ export class ScraperService {
   } 
 
   private async scrapeJobs(page: Page, pageNumber: number, userId: string) {
-    debugger;
+    // Reset force stop flag
+    this.status.forceStop = false;
+    
+    // Start scraping
     const baseUrl = "https://www.jobs.ch/en/vacancies/?employment-type=1&employment-type=5&region=2&term=";
     let hasMorePages = true;
     let duplicateCount = 0;
-    const MAX_DUPLICATES = 10; // Stop after finding 5 duplicates in a row
     this.status.currentPage = pageNumber;
 
-    while (hasMorePages && this.status.isRunning) {
+    while (hasMorePages && this.status.isRunning && !this.status.forceStop) {
       try {
+        // Make sure to update the status object with current page number
+        this.status.currentPage = this.status.currentPage;
         console.log('Scraping page:', this.status.currentPage);
         const pageUrl = `${baseUrl}&page=${this.status.currentPage}`;
         await page.goto(pageUrl, { waitUntil: "load" });
@@ -158,7 +285,7 @@ export class ScraperService {
               duplicateCount++;
 
               // Stop if we've found too many duplicates in a row
-              if (duplicateCount >= MAX_DUPLICATES) {
+              if (duplicateCount >= this.MAX_DUPLICATES) {
                 console.log('Found multiple duplicate jobs in a row, stopping scraper');
                 hasMorePages = false;
                 this.status.isRunning = false;
@@ -169,6 +296,12 @@ export class ScraperService {
 
             // Reset duplicate counter when we find a new job
             duplicateCount = 0;
+            
+            // Save the job first to get an ID
+            const jobId = await this.saveJob(job);
+            job.id = jobId;
+            
+            // Now process the job with ranking
             await this.processJob(job, userId);
             this.status.totalJobs++;
             if (!this.status.isRunning) {
@@ -231,7 +364,7 @@ export class ScraperService {
     const jobContentMD = this.turndownService.turndown(jobContentHTML);
 
     const job: Job = {
-      id: 0,
+      id: 0, // This will be updated after saving
       published: publishedDate,
       title: filteredLines[1]?.trim() || "N/A",
       location: filteredLines[2]?.trim() || "N/A",
@@ -246,10 +379,8 @@ export class ScraperService {
       categories: jobCategories,
       status: JobStatus.NEW,
     };
-    // Implementation of job details scraping
-    // This would contain the logic from your test file
-    // console.log('Job:', job);
-    return job; // Placeholder
+    
+    return job;
   }
 
   private parsePublishedDate(dateStr: string): Date {
