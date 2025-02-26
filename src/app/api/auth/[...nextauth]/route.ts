@@ -83,29 +83,24 @@ export const authOptions: AuthOptions = {
       if (!user.id) return;
       const openAIService = OpenAIService.getInstance();
 
-      // 1) Create job ranker assistant on OpenAI
-      const rankerAssistant = await openAIService.createJobRankerAssistant(user.id);
-      // 2) Create job composer assistant on OpenAI
-      const composerAssistant = await openAIService.createComposerAssistant(user.id, /* no fileIds yet */ []);
-      // 3) Create vector store on OpenAI
+      // This code is not actually used - user creation happens in the /api/auth/signup route
+      // This is only kept as a fallback for external auth providers which we don't use
+      
+      // 1) Create vector store first
       const vectorStore = await openAIService.createUserVectorStore(user.id);
-
-      // Then store them in Prisma
-      await prisma.userAssistant.create({
-        data: {
-          userId: user.id,
-          assistantName: 'job-ranker',
-          assistantId: rankerAssistant.id, 
-          systemPrompt: 'System prompt for ranking jobs',
-        },
-      });
+      
+      // 2) Create job ranker assistant on OpenAI (creates its own DB record)
+      await openAIService.createJobRankingAssistant(user.id);
+      
+      // 3) Create job composer assistant on OpenAI
+      const composerAssistant = await openAIService.createComposerAssistant(user.id, vectorStore.id);
 
       await prisma.userAssistant.create({
         data: {
           userId: user.id,
-          assistantName: 'job-composer',
+          assistantName: `Composer_${user.id}`,
           assistantId: composerAssistant.id,
-          systemPrompt: 'System prompt for composing job applications',
+          systemPrompt: composerAssistant.instructions || '',
         },
       });
 

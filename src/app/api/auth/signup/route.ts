@@ -30,25 +30,21 @@ export async function POST(req: Request) {
 
     // Create the assistants & vector store immediately after signing up
     const openAIService = OpenAIService.getInstance()
-    const rankerAssistant = await openAIService.createJobRankerAssistant(user.id)
+    
+    // Create vector store first
     const vectorStore = await openAIService.createUserVectorStore(user.id)
+    
+    // Now create assistants - the ranker assistant now handles its own DB creation
+    await openAIService.createJobRankingAssistant(user.id)
     const composerAssistant = await openAIService.createComposerAssistant(user.id, vectorStore.id)
 
-    // Record these in Prisma
-    await prisma.userAssistant.create({
-      data: {
-        userId: user.id,
-        assistantName: rankerAssistant.name,
-        assistantId: rankerAssistant.id,
-        systemPrompt: rankerAssistant.instructions,
-      },
-    })
+    // Record composer assistant in Prisma
     await prisma.userAssistant.create({
       data: {
         userId: user.id,
         assistantName: composerAssistant.name,
         assistantId: composerAssistant.id,
-        systemPrompt: composerAssistant.instructions,
+        systemPrompt: composerAssistant.instructions || '',
       },
     })
     await prisma.userVectorStore.create({
