@@ -171,73 +171,23 @@ export class OpenAIService {
     };
   }
 
-  public async createJobRankingAssistant(userId: string): Promise<string> {
+  public async updateJobRankingPrompt(userId: string, jobRankerPrompt: string): Promise<void> {
     try {
-      // Create ranker assistant on OpenAI
-      const assistant = await this.openai.beta.assistants.create({
-        name: `JobRanker_${userId}`,
-        description: 'Assistant for ranking jobs',
-        model: 'gpt-4o-mini',
-        instructions: `Analysiere die folgende Stellenanzeige und berechne Punkte basierend auf den folgenden Kriterien.
-
-Pluspunkte:
-(+4) Einstiegsstelle in jedem Bereich (Einsteiger, Quereinsteiger)
-(+4) Kaufmännische Lehre (Kaufmann EFZ, KV), oder lediglich Berufslehre/Grundbildung erfordert
-(+4) Kassenwesen und Kundendienst
-(+3) Software-/Webentwicklungsrolle
-(+3) IT-Support
-(+3) Grafikdesignrolle
-(+3) Logistik
-
-Pluspunkte für jedes Tool:
-(+1) Entwicklung: HTML, CSS, JavaScript, TypeScript, React, Next.js, Node.js, Express, Git
-(+1) Betriebssysteme: Linux
-(+0.5) Design-Tools: Photoshop, Illustrator, Figma
-(+0.5) Datenbank: MongoDB, PostgreSQL
-(+0.5) Sonstiges: MS Office, Python
-
-Minuspunkte:
-(-3) Fachspezifische Rolle in einem anderen Bereich als den oben genannten
-(-2) Ein Hochschulabschluss, Studium ist erforderlich
-(-2) Ein Zertifikat ist erforderlich
-(-1) Punkt für jedes Jahr Berufserfahrung in einem Bereich, der nicht oben genannt ist (z.B. (-4) wenn 4 Jahre Erfahrung erfordert) oder (-3) wenn "mehrjährige" Erfahrung
-
-Antworte NUR mit einem JSON-Objekt ohne Markdown-Formatierung wie:
-{"ranking": "bingo", "canton": "ZH"}
-
-Wobei:
-- ranking: einer von "bingo", "good", "okay" oder "bad" ist, abhängig von der Punktezahl
-- canton: der Schweizer Kanton, in dem der Job angeboten wird (z.B. ZH, BE, usw.)
-
-Bemerkung: Keine Jobs von Stellenvermittler und Temporärbüros. Keine Praktikum oder Lehrstellen`,
-      });
-      
-      console.log(`Created new job ranking assistant: ${assistant.id}`);
-      
-      // Store in database
-      await prisma.userAssistant.upsert({
-        where: {
-          userId_assistantName: {
-            userId,
-            assistantName: `JobRanker_${userId}`
-          }
-        },
+      // Update the user's job ranking prompt in the database
+      await prisma.userProfile.upsert({
+        where: { userId },
         create: {
           userId,
-          assistantId: assistant.id,
-          assistantName: `JobRanker_${userId}`,
-          systemPrompt: assistant.instructions || '',
+          jobRankerPrompt,
         },
         update: {
-          assistantId: assistant.id,
-          systemPrompt: assistant.instructions || '',
+          jobRankerPrompt,
         },
       });
-      
-      // Return just the ID
-      return assistant.id;
+
+      console.log(`Updated job ranking prompt for user ${userId}`);
     } catch (error) {
-      console.error("Error creating job ranker assistant:", error);
+      console.error('Error updating job ranking prompt:', error);
       throw error;
     }
   }
@@ -252,40 +202,7 @@ Bemerkung: Keine Jobs von Stellenvermittler und Temporärbüros. Keine Praktikum
     return { id: vectorStore.id };
   }
 
-  public async updateJobRankingAssistant(userId: string, assistantId: string, jobRankerPrompt: string): Promise<void> {
-    try {
-      // Create or update the job ranking assistant
-      const assistant = await this.openai.beta.assistants.update(
-        assistantId,
-        {
-          instructions: jobRankerPrompt,
-        }
-      );
-
-      // Store in database
-      await prisma.userAssistant.upsert({
-        where: {
-          userId_assistantName: {
-            userId,
-            assistantName: `JobRanker_${userId}`
-          }
-        },
-        create: {
-          userId,
-          assistantId: assistant.id,
-          assistantName: `JobRanker_${userId}`,
-          systemPrompt: jobRankerPrompt,
-        },
-        update: {
-          assistantId: assistant.id,
-          systemPrompt: jobRankerPrompt,
-        },
-      });
-    } catch (error) {
-      console.error('Error updating job ranking assistant:', error);
-      throw error;
-    }
-  }
+  // Already implemented as updateJobRankingPrompt
 
   public async updateComposerAssistant(userId: string, assistantId: string, composerPrompt: string): Promise<void> {
     try {
@@ -388,10 +305,10 @@ Bemerkung: Keine Jobs von Stellenvermittler und Temporärbüros. Keine Praktikum
   }
 
   /**
-   * Fast version of rankJob that uses a preconfigured assistant
-   * to avoid redundant verification and creation steps
+   * Fast version of rankJob that uses a preconfigured prompt
+   * to avoid looking up user preferences
    */
-  public async rankJobWithAssistant(job: Job, assistantId: string): Promise<JobRanking> {
+  public async rankJobWithAssistant(job: Job, prompt: string): Promise<JobRanking> {
     try {
       // Format the job information
       const jobInfo = `
@@ -405,44 +322,33 @@ Beschreibung:
 ${job.description || 'Keine Beschreibung verfügbar'}
 `;
 
-      // Create a thread and add the job information
-      const thread = await this.openai.beta.threads.create();
-      await this.openai.beta.threads.messages.create(thread.id, {
-        role: "user",
-        content: jobInfo
+      // Directly use the OpenAI chat completions API
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: prompt
+          },
+          {
+            role: 'user',
+            content: jobInfo
+          }
+        ],
+        temperature: 0.1, // Lower temperature for more consistent responses
+        response_format: { type: 'json_object' }
       });
 
-      // Start the run with the assistant
-      const run = await this.openai.beta.threads.runs.create(thread.id, {
-        assistant_id: assistantId,
-      });
+      // Get the response content
+      const responseContent = response.choices[0]?.message?.content;
 
-      // Wait for the run to complete
-      const runStatus = await this.waitForCompletion(thread.id, run.id);
-      
-      if (runStatus.status !== "completed") {
-        throw new Error("Job ranking not completed");
+      if (!responseContent) {
+        throw new Error("Empty response from OpenAI");
       }
-      
-      // Get the response message
-      const messages = await this.openai.beta.threads.messages.list(thread.id);
-      if (messages.data.length === 0) {
-        throw new Error("No response received");
-      }
-      
-      const content = messages.data[0].content[0];
-      if (content.type !== "text") {
-        throw new Error("Unexpected response type");
-      }
-      
+
       // Parse the JSON response
       try {
-        // Clean up the response
-        let responseText = content.text.value;
-        responseText = responseText.replace(/```json\s*|\s*```/g, '');
-        responseText = responseText.trim();
-        
-        const json = JSON.parse(responseText);
+        const json = JSON.parse(responseContent);
         return jobRankingSchema.parse(json) as JobRanking;
       } catch (error) {
         console.error("Failed to parse response:", error);
@@ -453,39 +359,48 @@ ${job.description || 'Keine Beschreibung verfügbar'}
       return { ranking: "okay", canton: "N/A" };
     }
   }
-  
+
   public async rankJob(job: Job, userId: string): Promise<JobRanking> {
     try {
-      const assistant = await prisma.userAssistant.findFirst({
-        where: {
-          userId,
-          assistantName: `JobRanker_${userId}`
-        }
+      // Get user's job ranking prompt or use the default
+      const userSettings = await prisma.userProfile.findUnique({
+        where: { userId }
       });
 
-      if (!assistant) {
-        throw new Error('No job ranking assistant found for user');
-      }
+      // Get the ranking prompt (either from user settings or use default)
+      const rankingPrompt = userSettings?.jobRankerPrompt || `Analysiere die folgende Stellenanzeige und berechne Punkte basierend auf den folgenden Kriterien.
 
-      console.log(`Using assistant: ${assistant.assistantName} with ID: ${assistant.assistantId}`);
-      
-      // Verify that the assistant exists
-      try {
-        await this.openai.beta.assistants.retrieve(assistant.assistantId);
-      } catch (error) {
-        console.error(`Failed to retrieve assistant: ${assistant.assistantId}`, error);
-        // Fall back to creating a new assistant
-        const newAssistant = await this.createJobRankingAssistant(userId);
-        console.log(`Created new assistant with ID: ${newAssistant}`);
-        
-        // Update the assistant ID in the database
-        await prisma.userAssistant.update({
-          where: { id: assistant.id },
-          data: { assistantId: newAssistant }
-        });
-        
-        assistant.assistantId = newAssistant;
-      }
+Pluspunkte:
+(+4) Einstiegsstelle in jedem Bereich (Einsteiger, Quereinsteiger)
+(+4) Kaufmännische Lehre (Kaufmann EFZ, KV), oder lediglich Berufslehre/Grundbildung erfordert
+(+4) Kassenwesen und Kundendienst
+(+4) Immobilienbewirtschafter, SVIT
+(+3) Software-/Webentwicklungsrolle
+(+3) IT-Support
+(+3) Grafikdesignrolle
+(+3) Logistik
+
+Pluspunkte für jedes Tool:
+(+1) Entwicklung: HTML, CSS, JavaScript, TypeScript, React, Next.js, Node.js, Express, Git
+(+1) Betriebssysteme: Linux
+(+0.5) Design-Tools: Photoshop, Illustrator, Figma
+(+0.5) Datenbank: MongoDB, PostgreSQL
+(+0.5) Sonstiges: MS Office, Python
+
+Minuspunkte:
+(-3) Fachspezifische Rolle in einem anderen Bereich als den oben genannten
+(-2) Ein Hochschulabschluss, Studium ist erforderlich
+(-2) Ein Zertifikat ist erforderlich
+(-1) Punkt für jedes Jahr Berufserfahrung in einem Bereich, der nicht oben genannt ist (z.B. (-4) wenn 4 Jahre Erfahrung erfordert) oder (-3) wenn "mehrjährige" Erfahrung
+
+Antworte NUR mit einem JSON-Objekt ohne Markdown-Formatierung wie:
+{"ranking": "bingo", "canton": "ZH"}
+
+Wobei:
+- ranking: einer von "bingo", "good", "okay" oder "bad" ist, abhängig von der Punktezahl
+- canton: der Schweizer Kanton, in dem der Job angeboten wird (z.B. ZH, BE, usw.)
+
+Bemerkung: Keine Jobs von Stellenvermittler und Temporärbüros. Keine Praktikum oder Lehrstellen`;
 
       // Format the job information
       const jobInfo = `
@@ -499,91 +414,50 @@ Beschreibung:
 ${job.description || 'Keine Beschreibung verfügbar'}
 `;
 
-      console.log(`Creating thread for job: ${job.title}`);
-      const thread = await this.openai.beta.threads.create();
-      await this.openai.beta.threads.messages.create(thread.id, {
-        role: "user",
-        content: jobInfo
+      console.log(`Ranking job: ${job.title}`);
+
+      // Directly use the OpenAI chat completions API
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: rankingPrompt
+          },
+          {
+            role: 'user',
+            content: jobInfo
+          }
+        ],
+        temperature: 0.1, // Lower temperature for more consistent responses
+        response_format: { type: 'json_object' }
       });
 
-      console.log(`Starting run with assistant ID: ${assistant.assistantId}`);
-      const run = await this.openai.beta.threads.runs.create(thread.id, {
-        assistant_id: assistant.assistantId,
-      });
-      console.log(`Run created with ID: ${run.id}, status: ${run.status}`);
+      // Get the response content
+      const responseContent = response.choices[0]?.message?.content;
+      console.log(`Response: ${responseContent}`);
 
-      console.log(`Waiting for completion of run ${run.id}...`);
-      const runStatus = await this.waitForCompletion(thread.id, run.id);
-      console.log(`Run completed with status: ${runStatus.status}`);
-
-      if (runStatus.status !== "completed") throw new Error("Job ranking not completed");
-      
-      console.log(`Retrieving messages from thread ${thread.id}...`);
-      const messages = await this.openai.beta.threads.messages.list(thread.id);
-      console.log(`Retrieved ${messages.data.length} messages`);
-      
-      if (messages.data.length === 0) {
-        console.error("No messages found in thread");
-        throw new Error("No response received from assistant");
+      if (!responseContent) {
+        throw new Error("Empty response from OpenAI");
       }
-      
-      const message = messages.data[0];
-      console.log(`Message role: ${message.role}, created at: ${message.created_at}`);
-      
-      if (message.content.length === 0) {
-        console.error("Message has no content");
-        throw new Error("Empty response from assistant");
-      }
-      
-      const content = message.content[0];
-      console.log(`Content type: ${content.type}`);
-      
-      if (content.type !== "text") throw new Error("Unexpected response type");
 
       try {
-        // Log the raw response
-        console.log(`Raw assistant response: ${content.text.value}`);
-        
-        // First try to clean the response by removing any markdown code blocks
-        let responseText = content.text.value;
-        responseText = responseText.replace(/```json\s*|\s*```/g, '');
-        responseText = responseText.trim();
-        
-        console.log(`Cleaned response text: ${responseText}`);
-        
-        // Then parse it as JSON
-        let json;
-        try {
-          json = JSON.parse(responseText);
-          console.log(`Parsed JSON:`, json);
-        } catch (parseError) {
-          console.error(`JSON parse error:`, parseError);
-          
-          // Try to extract JSON using regex if parsing fails
-          const jsonRegex = /\{.*\}/s;
-          const match = responseText.match(jsonRegex);
-          if (match) {
-            console.log(`Trying to parse extracted JSON: ${match[0]}`);
-            json = JSON.parse(match[0]);
-            console.log(`Parsed extracted JSON:`, json);
-          } else {
-            throw parseError;
-          }
-        }
-        
+        // Parse the JSON response
+        const json = JSON.parse(responseContent);
+        console.log(`Parsed result:`, json);
+
         // Validate the JSON structure
         const result = jobRankingSchema.parse(json) as JobRanking;
-        console.log(`Final validated result:`, result);
         return result;
       } catch (error) {
         console.error("Failed to parse ranking response:", error);
-        console.error("Original response:", content.text.value);
-        
+        console.error("Original response:", responseContent);
+
         // Try to extract ranking and canton directly with regex as last resort
         try {
-          const rankingMatch = content.text.value.match(/ranking["']?\s*:\s*["']?(bingo|good|okay|bad)["']?/i);
-          const cantonMatch = content.text.value.match(/canton["']?\s*:\s*["']?([A-Z]{2}|N\/A)["']?/i);
-          
+          const rankingMatch = responseContent.match(/ranking["']?\s*:\s*["']?(bingo|good|okay|bad)["']?/i);
+          const cantonMatch = responseContent.match(/canton["']?\s*:\s*["']?([A-Z]{2}|N\/A)["']?/i);
+
           if (rankingMatch && cantonMatch) {
             console.log(`Extracted with regex - Ranking: ${rankingMatch[1]}, Canton: ${cantonMatch[1]}`);
             return {
@@ -594,7 +468,7 @@ ${job.description || 'Keine Beschreibung verfügbar'}
         } catch (regexError) {
           console.error("Regex extraction failed:", regexError);
         }
-        
+
         // Return a default ranking when all parsing methods fail
         return { ranking: "okay", canton: "N/A" };
       }
@@ -611,14 +485,14 @@ ${job.description || 'Keine Beschreibung verfügbar'}
 
     while (runStatus.status !== 'completed' && attempts < MAX_COMPLETION_ATTEMPTS) {
       console.log(`Status: ${runStatus.status}, attempt ${attempts + 1}/${MAX_COMPLETION_ATTEMPTS}`);
-      
+
       // Check for failed or cancelled status
       if (runStatus.status === 'failed' || runStatus.status === 'cancelled' || runStatus.status === 'expired') {
         console.error(`Run failed with status: ${runStatus.status}`);
         console.error('Error details:', runStatus.last_error);
         throw new Error(`Generation ${runStatus.status}: ${runStatus.last_error?.message || 'Unknown error'}`);
       }
-      
+
       // Check for requiring action (function calling)
       if (runStatus.status === 'requires_action') {
         console.log('Run requires action:', runStatus.required_action);
@@ -626,7 +500,7 @@ ${job.description || 'Keine Beschreibung verfügbar'}
         await this.openai.beta.threads.runs.cancel(threadId, runId);
         throw new Error('Function calling not implemented');
       }
-      
+
       await new Promise(resolve => setTimeout(resolve, COMPLETION_CHECK_INTERVAL));
       runStatus = await this.openai.beta.threads.runs.retrieve(threadId, runId);
       attempts++;

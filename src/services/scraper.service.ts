@@ -19,7 +19,7 @@ export class ScraperService {
   private openai: OpenAIService;
   private readonly MAX_RETRIES = 3;
   private readonly DELAY_BETWEEN_PAGES = 2000;
-  private readonly MAX_DUPLICATES = 10;
+  private readonly MAX_DUPLICATES = 30;
 
   private status: ScrapeStatus = {
     isRunning: false,
@@ -143,59 +143,94 @@ export class ScraperService {
     return { success: true, message: 'Scraper stopping...' };
   }
 
-  // Method to prepare assistant and ensure it exists for the scraping session
-  private async prepareAssistant(userId: string) {
+  // Method to get the user's job ranking prompt
+  private async getUserRankingPrompt(userId: string) {
     try {
-      // Check if assistant exists for this user
-      const assistant = await prisma.userAssistant.findFirst({
-        where: {
-          userId,
-          assistantName: `JobRanker_${userId}`
-        }
+      // Get user's job ranking prompt
+      const userSettings = await prisma.userProfile.findUnique({
+        where: { userId }
       });
       
-      if (!assistant) {
-        console.log(`No assistant found for user ${userId}, creating new one...`);
-        // Create a new assistant
-        const assistantId = await this.openai.createJobRankingAssistant(userId);
-        return { assistantId, assistantName: `JobRanker_${userId}` };
-      }
-      
-      // Verify the assistant exists in OpenAI
-      try {
-        await this.openai.beta.assistants.retrieve(assistant.assistantId);
-        console.log(`Using existing assistant: ${assistant.assistantName} with ID: ${assistant.assistantId}`);
-        return assistant;
-      } catch (error) {
-        console.error(`Assistant ${assistant.assistantId} not found in OpenAI, creating new one...`);
-        // Create a new assistant
-        const newAssistantId = await this.openai.createJobRankingAssistant(userId);
-        
-        // Update the assistant ID in the database
-        await prisma.userAssistant.update({
-          where: { id: assistant.id },
-          data: { assistantId: newAssistantId }
-        });
-        
-        return { ...assistant, assistantId: newAssistantId };
-      }
+      // Return user's custom prompt or the default prompt
+      return userSettings?.jobRankerPrompt || `Analysiere die folgende Stellenanzeige und berechne Punkte basierend auf den folgenden Kriterien.
+
+Pluspunkte:
+(+4) Einstiegsstelle in jedem Bereich (Einsteiger, Quereinsteiger)
+(+4) Kaufmännische Lehre (Kaufmann EFZ, KV), oder lediglich Berufslehre/Grundbildung erfordert
+(+4) Kassenwesen und Kundendienst
+(+3) Software-/Webentwicklungsrolle
+(+3) IT-Support
+(+3) Grafikdesignrolle
+(+3) Logistik
+
+Pluspunkte für jedes Tool:
+(+1) Entwicklung: HTML, CSS, JavaScript, TypeScript, React, Next.js, Node.js, Express, Git
+(+1) Betriebssysteme: Linux
+(+0.5) Design-Tools: Photoshop, Illustrator, Figma
+(+0.5) Datenbank: MongoDB, PostgreSQL
+(+0.5) Sonstiges: MS Office, Python
+
+Minuspunkte:
+(-3) Fachspezifische Rolle in einem anderen Bereich als den oben genannten
+(-2) Ein Hochschulabschluss, Studium ist erforderlich
+(-2) Ein Zertifikat ist erforderlich
+(-1) Punkt für jedes Jahr Berufserfahrung in einem Bereich, der nicht oben genannt ist (z.B. (-4) wenn 4 Jahre Erfahrung erfordert) oder (-3) wenn "mehrjährige" Erfahrung
+
+Antworte NUR mit einem JSON-Objekt ohne Markdown-Formatierung wie:
+{"ranking": "bingo", "canton": "ZH"}
+
+Wobei:
+- ranking: einer von "bingo", "good", "okay" oder "bad" ist, abhängig von der Punktezahl
+- canton: der Schweizer Kanton, in dem der Job angeboten wird (z.B. ZH, BE, usw.)
+
+Bemerkung: Keine Jobs von Stellenvermittler und Temporärbüros. Keine Praktikum oder Lehrstellen`;
     } catch (error) {
-      console.error('Error preparing assistant:', error);
-      return null;
+      console.error('Error getting user ranking prompt:', error);
+      // Return a default prompt if there's an error
+      return `Analysiere die folgende Stellenanzeige und berechne Punkte basierend auf den folgenden Kriterien.
+
+Pluspunkte:
+(+4) Einstiegsstelle in jedem Bereich (Einsteiger, Quereinsteiger)
+(+4) Kaufmännische Lehre (Kaufmann EFZ, KV), oder lediglich Berufslehre/Grundbildung erfordert
+(+4) Kassenwesen und Kundendienst
+(+3) Software-/Webentwicklungsrolle
+(+3) IT-Support
+(+3) Grafikdesignrolle
+(+3) Logistik
+
+Pluspunkte für jedes Tool:
+(+1) Entwicklung: HTML, CSS, JavaScript, TypeScript, React, Next.js, Node.js, Express, Git
+(+1) Betriebssysteme: Linux
+(+0.5) Design-Tools: Photoshop, Illustrator, Figma
+(+0.5) Datenbank: MongoDB, PostgreSQL
+(+0.5) Sonstiges: MS Office, Python
+
+Minuspunkte:
+(-3) Fachspezifische Rolle in einem anderen Bereich als den oben genannten
+(-2) Ein Hochschulabschluss, Studium ist erforderlich
+(-2) Ein Zertifikat ist erforderlich
+(-1) Punkt für jedes Jahr Berufserfahrung in einem Bereich, der nicht oben genannt ist (z.B. (-4) wenn 4 Jahre Erfahrung erfordert) oder (-3) wenn "mehrjährige" Erfahrung
+
+Antworte NUR mit einem JSON-Objekt ohne Markdown-Formatierung wie:
+{"ranking": "bingo", "canton": "ZH"}
+
+Wobei:
+- ranking: einer von "bingo", "good", "okay" oder "bad" ist, abhängig von der Punktezahl
+- canton: der Schweizer Kanton, in dem der Job angeboten wird (z.B. ZH, BE, usw.)
+
+Bemerkung: Keine Jobs von Stellenvermittler und Temporärbüros. Keine Praktikum oder Lehrstellen`;
     }
   }
   
-  private async processJob(job: Job, userId: string, preparedAssistant?: any) {
+  private async processJob(job: Job, userId: string, rankingPrompt?: string) {
     try {
-      // Rank the job using OpenAI
-      let response;
-      if (preparedAssistant) {
-        // Use the prepared assistant for faster processing
-        response = await this.openai.rankJobWithAssistant(job, preparedAssistant.assistantId);
-      } else {
-        // Fall back to normal ranking if no prepared assistant
-        response = await this.openai.rankJob(job, userId);
+      // If no prompt was provided, get it from the user settings
+      if (!rankingPrompt) {
+        rankingPrompt = await this.getUserRankingPrompt(userId);
       }
+      
+      // Rank the job using OpenAI with direct prompting
+      const response = await this.openai.rankJobWithAssistant(job, rankingPrompt);
       
       job.ranking = response.ranking;
       job.canton = response.canton;
@@ -370,13 +405,10 @@ export class ScraperService {
     // Reset force stop flag
     this.status.forceStop = false;
     
-    // Prepare OpenAI assistant
-    console.log('Preparing OpenAI assistant for batch processing...');
-    const assistant = await this.prepareAssistant(userId);
-    if (!assistant) {
-      console.error('Failed to prepare assistant, aborting scrape');
-      return;
-    }
+    // Get user's job ranking prompt
+    console.log('Getting user job ranking prompt...');
+    const rankingPrompt = await this.getUserRankingPrompt(userId);
+    console.log('Retrieved job ranking prompt');
     
     // Start scraping
     const baseUrl = "https://www.jobs.ch/en/vacancies/?employment-type=1&employment-type=5&region=2&term=";
@@ -427,8 +459,8 @@ export class ScraperService {
             const jobId = await this.saveJob(job);
             job.id = jobId;
             
-            // Now process the job with ranking
-            await this.processJob(job, userId, assistant);
+            // Now process the job with ranking using the user's prompt
+            await this.processJob(job, userId, rankingPrompt);
             this.status.totalJobs++;
             
             // Update localStorage with latest job count
