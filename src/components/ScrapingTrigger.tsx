@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { Input } from "@/components/ui/input";
+import { trackEvent, AnalyticsEvents } from '@/lib/analytics';
 
 interface ScrapeStatus {
   isRunning: boolean;
@@ -71,6 +72,12 @@ export function ScrapingTrigger() {
         }
         
         toast.success('Scraping started successfully');
+        
+        // Track the scraper started event
+        trackEvent(AnalyticsEvents.SCRAPER_STARTED, {
+          start_page: pageNumber.toString(),
+          user_id: user.id
+        });
       } catch (fetchError) {
         console.error('Network error when starting scraper:', fetchError);
         toast.error('Network error when starting scraper. Please check your connection.');

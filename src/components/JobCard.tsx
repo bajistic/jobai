@@ -17,6 +17,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { MoreVertical, BookmarkIcon, EyeOff, FileText, PenSquare } from 'lucide-react'
 import { cn } from "@/lib/utils"
 import { GenerateLetterDialog } from '@/components/generate-letter-dialog'
+import { trackEvent, AnalyticsEvents } from '@/lib/analytics'
 
 interface JobCardProps {
   job: Job
@@ -55,6 +56,11 @@ export function JobCard({ job, onUpdate, isSelected, onSelect }: JobCardProps) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ isStarred: !job.isStarred }),
           })
+          // Track starring/unstarring event
+          trackEvent(AnalyticsEvents.JOB_STARRED, {
+            job_id: job.id.toString(),
+            action: !job.isStarred ? 'star' : 'unstar',
+          })
           break
         case 'hide':
           await fetch(`/api/jobs/${job.id}/hide`, {
@@ -62,10 +68,21 @@ export function JobCard({ job, onUpdate, isSelected, onSelect }: JobCardProps) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ isHidden: !job.isHidden }),
           })
+          // Track hiding/unhiding event
+          trackEvent(AnalyticsEvents.JOB_HIDDEN, {
+            job_id: job.id.toString(),
+            action: !job.isHidden ? 'hide' : 'unhide',
+          })
           break
         case 'notes':
           setShowNotesDialog(true)
           await fetchNotes()
+          // Track notes opened event
+          trackEvent(AnalyticsEvents.BUTTON_CLICKED, {
+            component: 'JobCard',
+            action: 'open_notes',
+            job_id: job.id.toString(),
+          })
           break
       }
       // Refresh the job list
@@ -108,7 +125,15 @@ export function JobCard({ job, onUpdate, isSelected, onSelect }: JobCardProps) {
           job.isHidden && "opacity-50",
           isSelected && "ring-2 ring-primary"
         )}
-        onClick={() => onSelect?.(job)}
+        onClick={() => {
+          onSelect?.(job)
+          // Track job card clicked event
+          trackEvent(AnalyticsEvents.JOB_VIEWED, {
+            job_id: job.id.toString(),
+            job_title: job.title || 'Untitled',
+            company: job.company || 'Unknown',
+          })
+        }}
       >
         <CardHeader className="pb-2 flex flex-row justify-between items-start">
           <JobTitleLink className="text-lg font-semibold">
