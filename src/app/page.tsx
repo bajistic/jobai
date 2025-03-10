@@ -3,17 +3,28 @@
 import dynamic from 'next/dynamic'
 import { useJobs } from '@/contexts/JobContext'
 import { useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 
 const JobList = dynamic(() => import('@/components/JobList'), { ssr: false })
 const JobPreview = dynamic(() => import('@/components/JobPreview'), { ssr: false })
+const LandingPage = dynamic(() => import('@/components/LandingPage'), { ssr: false })
 
-export default function Dashboard() {
+export default function HomePage() {
+  const { data: session, status } = useSession()
   const { jobs, loading, totalJobs, selectedJobId, setSelectedJobId, fetchJobs } = useJobs()
 
   useEffect(() => {
-    fetchJobs()
-  }, [fetchJobs])
+    if (session) {
+      fetchJobs()
+    }
+  }, [fetchJobs, session])
 
+  // If the user is not authenticated, show the landing page
+  if (status !== 'loading' && !session) {
+    return <LandingPage />
+  }
+
+  // If the user is authenticated, show the dashboard
   return (
     <div className="flex flex-1 overflow-hidden">
       <div className={`w-full lg:w-1/3 border-r ${selectedJobId ? 'hidden lg:block' : 'block'}`}>

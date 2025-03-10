@@ -2,10 +2,11 @@
 
 import { createContext, useContext, useState, useCallback, ReactNode, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Job } from '@/lib/types/shared'
+import { Job, JobFetchOptions } from '@/lib/types/shared'
 
 interface JobContextType {
   jobs: Job[]
+  unrankedJobs: Job[]
   loading: boolean
   totalJobs: number
   selectedJobId: number | null
@@ -20,38 +21,34 @@ interface JobContextType {
   fetchJobs: (options?: JobFetchOptions) => Promise<void>
   setSelectedJobId: (id: number | null) => void
   updateJobStatus: (jobId: number, status: 'new' | 'applied' | 'rejected' | 'interview') => Promise<void>
+  fetchUnrankedJobs: () => Promise<void>
+  rankJob: (jobId: number, ranking: string) => Promise<void>
 }
 
-interface JobFetchOptions {
-  onlyStarred?: boolean
-  showHidden?: boolean
-  status?: string
-  page?: number
-  pageSize?: number
-  location?: string
-  ranking?: string
-}
 
 const JobContext = createContext<JobContextType>({
   jobs: [],
+  unrankedJobs: [],
   loading: false,
   totalJobs: 0,
   selectedJobId: null,
   pagination: {
     currentPage: 1,
     totalPages: 1,
-    handlePageChange: () => {},
+    handlePageChange: () => { },
     getPageNumbers: () => [],
     hasNextPage: false,
     hasPrevPage: false
   },
-  fetchJobs: async (options?: JobFetchOptions) => undefined,
-  setSelectedJobId: () => {},
-  updateJobStatus: async () => {},
+  fetchJobs: async () => undefined,
+  setSelectedJobId: () => { },
+  updateJobStatus: async () => { },
+  fetchUnrankedJobs: async () => { },
+  rankJob: async () => { },
 })
 
 // Create a separate component for the parts that need useSearchParams
-function JobProviderContent({ 
+function JobProviderContent({
   children,
   setJobs,
   setTotalJobs,
@@ -60,7 +57,9 @@ function JobProviderContent({
   loading,
   totalJobs,
   selectedJobId,
-  setSelectedJobId
+  setSelectedJobId,
+  unrankedJobs,
+  setUnrankedJobs
 }: {
   children: ReactNode
   setJobs: (jobs: Job[]) => void
@@ -71,6 +70,8 @@ function JobProviderContent({
   totalJobs: number
   selectedJobId: number | null
   setSelectedJobId: (id: number | null) => void
+  unrankedJobs: Job[]
+  setUnrankedJobs: (jobs: Job[]) => void
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -86,9 +87,14 @@ function JobProviderContent({
       if (options.onlyStarred) params.set('onlyStarred', 'true')
       if (options.showHidden) params.set('showHidden', 'true')
       if (options.status) params.set('status', options.status)
-      if (options.location) params.set('location', options.location)
-      if (options.ranking && options.ranking !== 'all') params.set('ranking', options.ranking)
-      params.set('page', String(currentPage))
+
+      // Get current filters from URL if not provided in options
+      const location = options.location ?? searchParams.get('location') ?? ''
+      const ranking = options.ranking ?? searchParams.get('ranking') ?? ''
+
+      if (location) params.set('location', location)
+      if (ranking && ranking !== 'all') params.set('ranking', ranking)
+      params.set('page', String(options.page || currentPage))
       params.set('pageSize', String(itemsPerPage))
 
       const response = await fetch(`/api/jobs?${params.toString()}`)
@@ -170,9 +176,41 @@ function JobProviderContent({
     }
   }, [fetchJobs]);
 
+  const fetchUnrankedJobs = useCallback(async () => {
+    try {
+      const response = await fetch('/api/jobs/unranked');
+      const data = await response.json();
+      setUnrankedJobs(data.jobs || []);
+    } catch (error) {
+      console.error('Error fetching unranked jobs:', error);
+      throw error;
+    }
+  }, [setUnrankedJobs]);
+
+  const rankJob = useCallback(async (jobId: number, ranking: string) => {
+    try {
+      const response = await fetch(`/api/jobs/${jobId}/rank`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ranking }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to rank job');
+      }
+
+      // Refresh jobs list after ranking
+      await fetchJobs();
+    } catch (error) {
+      console.error('Error ranking job:', error);
+      throw error;
+    }
+  }, [fetchJobs]);
+
   return (
     <JobContext.Provider value={{
       jobs,
+      unrankedJobs,
       loading,
       totalJobs,
       selectedJobId,
@@ -180,6 +218,8 @@ function JobProviderContent({
       fetchJobs,
       setSelectedJobId,
       updateJobStatus,
+      fetchUnrankedJobs,
+      rankJob,
     }}>
       {children}
     </JobContext.Provider>
@@ -188,6 +228,7 @@ function JobProviderContent({
 
 export function JobProvider({ children }: { children: ReactNode }) {
   const [jobs, setJobs] = useState<Job[]>([])
+  const [unrankedJobs, setUnrankedJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(false)
   const [totalJobs, setTotalJobs] = useState(0)
   const [selectedJobId, setSelectedJobId] = useState<number | null>(null)
@@ -203,6 +244,8 @@ export function JobProvider({ children }: { children: ReactNode }) {
         totalJobs={totalJobs}
         selectedJobId={selectedJobId}
         setSelectedJobId={setSelectedJobId}
+        unrankedJobs={unrankedJobs}
+        setUnrankedJobs={setUnrankedJobs}
       >
         {children}
       </JobProviderContent>

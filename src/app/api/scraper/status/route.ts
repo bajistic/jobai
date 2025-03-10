@@ -7,8 +7,7 @@ export async function GET() {
   try {
     // Check authentication
     const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.email || session.user.email !== "baji@gmail.com") {
+    if (!session?.user?.group || session.user.group !== "admin") {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }

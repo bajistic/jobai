@@ -8,8 +8,8 @@ export async function GET(request: NextRequest) {
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const userId = session.user.id;
+    }     const userId = session.user.id;
+
 
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
@@ -61,7 +61,12 @@ export async function GET(request: NextRequest) {
         ]
       }),
       ...(ranking && ranking !== 'all' && {
-        ranking: ranking
+        job_preferences: {
+          some: {
+            ranking: ranking,
+            user_id: userId
+          }
+        }
       }),
     }
 

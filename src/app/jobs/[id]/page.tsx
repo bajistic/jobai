@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { JobActions } from '@/components/JobActions'
 import { CoverLetterSection } from '@/components/CoverLetterSection'
 import { formatDate } from '@/lib/utils'
+import ReactMarkdown from 'react-markdown'
+import { Job } from '@/lib/types/shared'
 
 export default async function JobDetailsPage({
   params
@@ -11,7 +13,7 @@ export default async function JobDetailsPage({
 }) {
   const job = await prisma.jobs.findUnique({
     where: { id: parseInt(params.id) },
-    include: { cover_letter: true }
+    include: { cover_letters: true }
   })
 
   if (!job) {
@@ -35,7 +37,9 @@ export default async function JobDetailsPage({
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-semibold mb-4">Job Description</h2>
             <div className="prose max-w-none">
-              {job.description}
+              <ReactMarkdown>
+                {job.description || 'No description available'}
+              </ReactMarkdown>
             </div>
           </div>
 
@@ -56,14 +60,14 @@ export default async function JobDetailsPage({
               </div>
               <div>
                 <dt className="text-gray-600">Status</dt>
-                <dd className="capitalize">{job.status.toLowerCase()}</dd>
+                <dd className="capitalize">{job.status || 'Not specified'}</dd>
               </div>
             </dl>
           </div>
         </div>
 
         <div>
-          <CoverLetterSection job={job} />
+          <CoverLetterSection job={job as unknown as Job} />
         </div>
       </div>
     </div>

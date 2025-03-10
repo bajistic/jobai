@@ -46,10 +46,26 @@ model User {
   image           String?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime
+  group           String?
   Account         Account[]
   Session         Session[]
   cover_letters   cover_letters[]
   job_preferences job_preferences[]
+  documents       UserDocument[]
+  assistants      UserAssistant[]
+  vectorStore     UserVectorStore[]
+  profile         UserProfile?
+
+  @@index([id])
+}
+
+model UserProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  jobRankerPrompt String?  @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model VerificationToken {
@@ -77,6 +93,7 @@ model job_preferences {
   id         Int         @id @default(autoincrement())
   job_id     Int
   user_id    String
+  ranking    String?
   is_hidden  Boolean?    @default(false)
   is_starred Boolean?    @default(false)
   created_at DateTime?   @default(now()) @db.Timestamp(6)
@@ -118,4 +135,55 @@ enum job_status {
   applied
   rejected
   interview
+}
+
+model UserDocument {
+  id                String           @id @default(cuid())
+  name              String
+  fileId            String // OpenAI file ID
+  userId            String
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  UserVectorStore   UserVectorStore? @relation(fields: [userVectorStoreId], references: [id])
+  userVectorStoreId String?
+
+  @@index([userId])
+  @@index([userVectorStoreId])
+}
+
+model UserAssistant {
+  id            String   @id @default(cuid())
+  userId        String
+  assistantId   String
+  assistantName String
+  systemPrompt  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, assistantName])
+}
+
+model UserVectorStore {
+  id            String         @id @default(cuid())
+  userId        String
+  vectorStoreId String
+  fileIds       String[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userDocuments UserDocument[]
+}
+
+model BetaRequest {
+  id          String   @id @default(cuid())
+  name        String
+  email       String
+  requestDate DateTime @default(now())
+  status      String   @default("pending") // pending, approved, rejected
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([email])
 }

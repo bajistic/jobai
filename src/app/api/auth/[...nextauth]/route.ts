@@ -4,6 +4,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 import { JWT } from "next-auth/jwt"
+import { OpenAIService } from '@/services/openai.service'
 
 export const authOptions: AuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -47,6 +48,7 @@ export const authOptions: AuthOptions = {
             id: user.id,
             email: user.email,
             name: user.name,
+            group: user.group,
           }
         } catch (error) {
           console.error('Auth error:', error)
@@ -75,6 +77,41 @@ export const authOptions: AuthOptions = {
       }
       return session
     }
+  },
+  events: {
+    async createUser({ user }) {
+      if (!user.id) return;
+      const openAIService = OpenAIService.getInstance();
+
+      // This code is not actually used - user creation happens in the /api/auth/signup route
+      // This is only kept as a fallback for external auth providers which we don't use
+      
+      // 1) Create vector store first
+      const vectorStore = await openAIService.createUserVectorStore(user.id);
+      
+      // 2) Create job ranker assistant on OpenAI (creates its own DB record)
+      await openAIService.createJobRankingAssistant(user.id);
+      
+      // 3) Create job composer assistant on OpenAI
+      const composerAssistant = await openAIService.createComposerAssistant(user.id, vectorStore.id);
+
+      await prisma.userAssistant.create({
+        data: {
+          userId: user.id,
+          assistantName: `Composer_${user.id}`,
+          assistantId: composerAssistant.id,
+          systemPrompt: composerAssistant.instructions || '',
+        },
+      });
+
+      await prisma.userVectorStore.create({
+        data: {
+          userId: user.id,
+          vectorStoreId: vectorStore.id,
+          fileIds: [],
+        },
+      });
+    },
   }
 }
 

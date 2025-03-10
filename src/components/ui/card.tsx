@@ -73,4 +73,19 @@ const CardFooter = React.forwardRef<
 ))
 CardFooter.displayName = "CardFooter"
 
-export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent }
+const JobTitleLink = React.forwardRef<
+  HTMLAnchorElement,
+  React.AnchorHTMLAttributes<HTMLAnchorElement>
+>(({ className, ...props }, ref) => (
+  <a
+    ref={ref}
+    className={cn(
+      "font-semibold leading-none tracking-tight inline-flex items-center gap-2 hover:underline cursor-pointer",
+      className
+    )}
+    {...props}
+  />
+))
+JobTitleLink.displayName = "JobTitleLink"
+
+export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent, JobTitleLink }

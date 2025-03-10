@@ -10,6 +10,7 @@ import { Providers } from '@/app/providers'
 import { usePathname } from 'next/navigation'
 import { JobProvider } from '@/contexts/JobContext'
 import { ThemeProvider } from '@/components/theme-provider'
+import { Toaster } from 'sonner'
 
 const Header = dynamic(() => import('@/components/Header'), { ssr: false })
 const Sidebar = dynamic(() => import('@/components/Sidebar'), { ssr: false })
@@ -22,8 +23,36 @@ function RootLayoutContent({ children }: { children: React.ReactNode }) {
 
   // Don't check auth for auth-related pages and error pages
   if (pathname === '/auth/signin' || pathname === '/auth/signup' || 
+      pathname === '/auth/beta-signup' || pathname === '/auth/beta-success' ||
+      pathname === '/beta' ||
       pathname === '/404' || pathname === '/_not-found') {
     return <>{children}</>
+  }
+
+  // For the home page, we handle authentication in the page component
+  if (pathname === '/') {
+    // If still loading session, show loading indicator
+    if (status === 'loading') {
+      return <div>Loading...</div>
+    }
+    
+    // If no session but on homepage, let the page component handle it (landing page)
+    if (!session) {
+      return <>{children}</>
+    }
+    
+    // If authenticated, render with layout
+    return (
+      <div className="flex h-screen overflow-hidden">
+        <Sidebar />
+        <div className="flex flex-col flex-1 overflow-hidden">
+          <Header onToggleJobList={() => {}} showJobList={false} />
+          <main className="flex-1">
+            {children}
+          </main>
+        </div>
+      </div>
+    )
   }
 
   // Protect all other routes
@@ -69,6 +98,7 @@ export default function RootLayout({
               </ThemeProvider>
             </Suspense>
           </Providers>
+          <Toaster />
         </JobProvider>
       </body>
     </html>

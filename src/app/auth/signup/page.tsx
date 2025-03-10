@@ -29,7 +29,7 @@ function SignUpContent() {
         const data = await res.json()
         setError(data.error || 'Something went wrong')
       }
-    } catch (error) {
+    } catch {
       setError('An error occurred')
     }
   }

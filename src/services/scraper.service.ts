@@ -3,12 +3,14 @@ import TurndownService from 'turndown';
 import { prisma } from '@/lib/prisma';
 import { Job, JobStatus } from '@/lib/types/shared';
 import { OpenAIService } from './openai.service';
+import { job_ranking } from '@prisma/client';
 
 interface ScrapeStatus {
   isRunning: boolean;
   totalJobs: number;
   currentPage: number;
   lastRun: Date | null;
+  forceStop?: boolean;
 }
 
 export class ScraperService {
@@ -17,18 +19,76 @@ export class ScraperService {
   private openai: OpenAIService;
   private readonly MAX_RETRIES = 3;
   private readonly DELAY_BETWEEN_PAGES = 2000;
-  private readonly MAX_DUPLICATES = 10;
+  private readonly MAX_DUPLICATES = 30;
 
   private status: ScrapeStatus = {
     isRunning: false,
     totalJobs: 0,
     currentPage: 0,
-    lastRun: null
+    lastRun: null,
+    forceStop: false
   };
+  
+  // Status persistence key for localStorage
+  private readonly STATUS_STORAGE_KEY = 'scraper_status';
 
   private constructor() {
     this.turndownService = new TurndownService();
     this.openai = OpenAIService.getInstance();
+    
+    // Try to restore status from localStorage if we're in a browser environment
+    this.restoreStatus();
+  }
+  
+  // Save status to localStorage
+  private saveStatus(): void {
+    if (typeof window !== 'undefined') {
+      try {
+        const statusCopy = {
+          ...this.status,
+          lastRun: this.status.lastRun ? this.status.lastRun.toISOString() : null
+        };
+        localStorage.setItem(this.STATUS_STORAGE_KEY, JSON.stringify(statusCopy));
+        console.log('Scraper status saved to localStorage');
+      } catch (error) {
+        console.error('Failed to save scraper status:', error);
+      }
+    }
+  }
+  
+  // Restore status from localStorage
+  private restoreStatus(): void {
+    if (typeof window !== 'undefined') {
+      try {
+        const savedStatus = localStorage.getItem(this.STATUS_STORAGE_KEY);
+        if (savedStatus) {
+          const parsedStatus = JSON.parse(savedStatus);
+          // Convert lastRun string back to Date if it exists
+          if (parsedStatus.lastRun) {
+            parsedStatus.lastRun = new Date(parsedStatus.lastRun);
+          }
+          
+          console.log('Restored scraper status from localStorage:', parsedStatus);
+          
+          // If the saved status shows running but it's been more than 30 minutes, 
+          // assume it crashed and reset isRunning to false
+          if (parsedStatus.isRunning && parsedStatus.lastRun) {
+            const thirtyMinutesAgo = new Date();
+            thirtyMinutesAgo.setMinutes(thirtyMinutesAgo.getMinutes() - 30);
+            
+            if (new Date(parsedStatus.lastRun) < thirtyMinutesAgo) {
+              console.log('Scraper status was running but appears stale (>30 min old), resetting to idle');
+              parsedStatus.isRunning = false;
+              parsedStatus.lastRun = new Date();
+            }
+          }
+          
+          this.status = { ...this.status, ...parsedStatus };
+        }
+      } catch (error) {
+        console.error('Failed to restore scraper status:', error);
+      }
+    }
   }
 
   public static getInstance(): ScraperService {
@@ -39,52 +99,259 @@ export class ScraperService {
   }
 
   getStatus(): ScrapeStatus {
-    return this.status;
+    // Create a deep copy to ensure we don't return a reference to the internal status
+    const status = {
+      isRunning: this.status.isRunning,
+      totalJobs: this.status.totalJobs,
+      currentPage: this.status.currentPage,
+      lastRun: this.status.lastRun ? new Date(this.status.lastRun).toISOString() : null
+    };
+    
+    return status;
+  }
+  
+  // Method to directly update the status (used for force reset)
+  setStatus(status: Partial<ScrapeStatus>): void {
+    if (status.isRunning !== undefined) this.status.isRunning = status.isRunning;
+    if (status.currentPage !== undefined) this.status.currentPage = status.currentPage;
+    if (status.totalJobs !== undefined) this.status.totalJobs = status.totalJobs;
+    if (status.lastRun !== undefined) this.status.lastRun = new Date(status.lastRun);
+    
+    // Save the updated status to localStorage
+    this.saveStatus();
   }
 
   async stopScraping() {
+    console.log('Stopping scraper...');
+    
+    // Set flag to stop scraping
     this.status.isRunning = false;
+    
+    // Force process cleanup if possible
+    try {
+      // This will trigger immediate stopping when the loop checks the running condition
+      this.status.forceStop = true;
+      
+      console.log('Scraper stop flag set. It will stop on the next loop iteration.');
+      
+      // Set last run time
+      this.status.lastRun = new Date();
+    } catch (error) {
+      console.error('Error during scraper stop:', error);
+    }
+    
+    return { success: true, message: 'Scraper stopping...' };
   }
 
-  private async processJob(job: Job) {
-    const response = await this.openai.rankJob(job as unknown as Job);
-    job.ranking = response.ranking;
-    job.canton = response.canton;
+  // Method to get the user's job ranking prompt
+  private async getUserRankingPrompt(userId: string) {
+    try {
+      // Get user's job ranking prompt
+      const userSettings = await prisma.userProfile.findUnique({
+        where: { userId }
+      });
+      
+      // Return user's custom prompt or the default prompt
+      return userSettings?.jobRankerPrompt || `Analysiere die folgende Stellenanzeige und berechne Punkte basierend auf den folgenden Kriterien.
 
-    const emoji =
-      job.ranking === "bingo"
-        ? "🎯"
-        : job.ranking === "good"
-        ? "🌟"
-        : job.ranking === "okay"
-        ? "👍"
-        : "👎";
-    console.log(`${emoji} ${job.title} (${job.published ? job.published.toLocaleDateString() : 'No date'})`);
+Pluspunkte:
+(+4) Einstiegsstelle in jedem Bereich (Einsteiger, Quereinsteiger)
+(+4) Kaufmännische Lehre (Kaufmann EFZ, KV), oder lediglich Berufslehre/Grundbildung erfordert
+(+4) Kassenwesen und Kundendienst
+(+3) Software-/Webentwicklungsrolle
+(+3) IT-Support
+(+3) Grafikdesignrolle
+(+3) Logistik
 
-    await this.saveJob(job);
+Pluspunkte für jedes Tool:
+(+1) Entwicklung: HTML, CSS, JavaScript, TypeScript, React, Next.js, Node.js, Express, Git
+(+1) Betriebssysteme: Linux
+(+0.5) Design-Tools: Photoshop, Illustrator, Figma
+(+0.5) Datenbank: MongoDB, PostgreSQL
+(+0.5) Sonstiges: MS Office, Python
+
+Minuspunkte:
+(-3) Fachspezifische Rolle in einem anderen Bereich als den oben genannten
+(-2) Ein Hochschulabschluss, Studium ist erforderlich
+(-2) Ein Zertifikat ist erforderlich
+(-1) Punkt für jedes Jahr Berufserfahrung in einem Bereich, der nicht oben genannt ist (z.B. (-4) wenn 4 Jahre Erfahrung erfordert) oder (-3) wenn "mehrjährige" Erfahrung
+
+Antworte NUR mit einem JSON-Objekt ohne Markdown-Formatierung wie:
+{"ranking": "bingo", "canton": "ZH"}
+
+Wobei:
+- ranking: einer von "bingo", "good", "okay" oder "bad" ist, abhängig von der Punktezahl
+- canton: der Schweizer Kanton, in dem der Job angeboten wird (z.B. ZH, BE, usw.)
+
+Bemerkung: Keine Jobs von Stellenvermittler und Temporärbüros. Keine Praktikum oder Lehrstellen`;
+    } catch (error) {
+      console.error('Error getting user ranking prompt:', error);
+      // Return a default prompt if there's an error
+      return `Analysiere die folgende Stellenanzeige und berechne Punkte basierend auf den folgenden Kriterien.
+
+Pluspunkte:
+(+4) Einstiegsstelle in jedem Bereich (Einsteiger, Quereinsteiger)
+(+4) Kaufmännische Lehre (Kaufmann EFZ, KV), oder lediglich Berufslehre/Grundbildung erfordert
+(+4) Kassenwesen und Kundendienst
+(+3) Software-/Webentwicklungsrolle
+(+3) IT-Support
+(+3) Grafikdesignrolle
+(+3) Logistik
+
+Pluspunkte für jedes Tool:
+(+1) Entwicklung: HTML, CSS, JavaScript, TypeScript, React, Next.js, Node.js, Express, Git
+(+1) Betriebssysteme: Linux
+(+0.5) Design-Tools: Photoshop, Illustrator, Figma
+(+0.5) Datenbank: MongoDB, PostgreSQL
+(+0.5) Sonstiges: MS Office, Python
+
+Minuspunkte:
+(-3) Fachspezifische Rolle in einem anderen Bereich als den oben genannten
+(-2) Ein Hochschulabschluss, Studium ist erforderlich
+(-2) Ein Zertifikat ist erforderlich
+(-1) Punkt für jedes Jahr Berufserfahrung in einem Bereich, der nicht oben genannt ist (z.B. (-4) wenn 4 Jahre Erfahrung erfordert) oder (-3) wenn "mehrjährige" Erfahrung
+
+Antworte NUR mit einem JSON-Objekt ohne Markdown-Formatierung wie:
+{"ranking": "bingo", "canton": "ZH"}
+
+Wobei:
+- ranking: einer von "bingo", "good", "okay" oder "bad" ist, abhängig von der Punktezahl
+- canton: der Schweizer Kanton, in dem der Job angeboten wird (z.B. ZH, BE, usw.)
+
+Bemerkung: Keine Jobs von Stellenvermittler und Temporärbüros. Keine Praktikum oder Lehrstellen`;
+    }
   }
-
-  private async saveJob(job: Partial<Job>): Promise<void> {
-    await prisma.jobs.create({
-      data: {
-        title: job.title || '',
-        company: job.company || '',
-        location: job.location || '',
-        description: job.description || '',
-        url: job.url || '',
-        published: job.published,
-        workload: job.workload,
-        contract: job.contract,
-        canton: job.canton,
-        categories: job.categories?.join(','),
-        status: 'new',
-        ranking: job.ranking,
-        address: job.address,
+  
+  private async processJob(job: Job, userId: string, rankingPrompt?: string) {
+    try {
+      // If no prompt was provided, get it from the user settings
+      if (!rankingPrompt) {
+        rankingPrompt = await this.getUserRankingPrompt(userId);
       }
+      
+      // Rank the job using OpenAI with direct prompting
+      const response = await this.openai.rankJobWithAssistant(job, rankingPrompt);
+      
+      job.ranking = response.ranking;
+      job.canton = response.canton;
+
+      // Visual feedback in the console based on ranking
+      const emoji =
+        job.ranking === "bingo"
+          ? "🎯"
+          : job.ranking === "good"
+          ? "🌟"
+          : job.ranking === "okay"
+          ? "👍"
+          : "👎";
+      console.log(`${emoji} ${job.title} (${job.published ? job.published.toLocaleDateString() : 'No date'})`);
+
+      // Save the job with ranking data
+      await this.saveJob(job);
+      
+      // Create user-specific job preference with ranking
+      await this.createJobPreference(job, userId);
+    } catch (error) {
+      console.error(`Error processing job "${job.title}":`, error);
+      // Save job anyway but with default "bad" ranking
+      await this.saveJob(job);
+    }
+  }
+
+  private async saveJob(job: Partial<Job>): Promise<number> {
+    try {
+      // First check if a job with this URL already exists
+      if (job.url) {
+        const existingJob = await prisma.jobs.findUnique({
+          where: { url: job.url }
+        });
+        
+        if (existingJob) {
+          // Update the existing job with new information
+          const updatedJob = await prisma.jobs.update({
+            where: { id: existingJob.id },
+            data: {
+              // Only update fields if they're provided
+              ...(job.title && { title: job.title }),
+              ...(job.company && { company: job.company }),
+              ...(job.location && { location: job.location }),
+              ...(job.description && { description: job.description }),
+              ...(job.published && { published: job.published }),
+              ...(job.workload && { workload: job.workload }),
+              ...(job.contract && { contract: job.contract }),
+              ...(job.canton && { canton: job.canton }),
+              ...(job.categories && { categories: job.categories.join(',') }),
+              ...(job.address && { address: job.address }),
+              ...(job.ranking && { ranking: job.ranking }),
+            }
+          });
+          return updatedJob.id;
+        }
+      }
+      
+      // If no existing job found, create a new one
+      const savedJob = await prisma.jobs.create({
+        data: {
+          title: job.title || '',
+          company: job.company || '',
+          location: job.location || '',
+          description: job.description || '',
+          url: job.url || '',
+          published: job.published,
+          workload: job.workload,
+          contract: job.contract,
+          canton: job.canton || 'N/A',
+          categories: job.categories?.join(','),
+          status: 'new',
+          address: job.address,
+          ranking: job.ranking || 'bad', // Include ranking in the saved job
+        }
+      });
+      
+      return savedJob.id;
+    } catch (error) {
+      console.error(`Error saving job "${job.title}":`, error);
+      // If it's a unique constraint error, try to find the existing job and return its ID
+      if (error.code === 'P2002' && job.url) {
+        const existingJob = await prisma.jobs.findUnique({
+          where: { url: job.url }
+        });
+        if (existingJob) {
+          console.log(`Found existing job with URL ${job.url}, ID: ${existingJob.id}`);
+          return existingJob.id;
+        }
+      }
+      throw error;
+    }
+  }
+
+  private async createJobPreference(job: Job, userId: string): Promise<void> {
+    if (!job.id) {
+      console.warn('Job ID is missing, cannot create job preference');
+      return;
+    }
+    
+    // Create or update job preference for this user
+    await prisma.job_preferences.upsert({
+      where: {
+        job_id_user_id: {
+          job_id: job.id,
+          user_id: userId,
+        },
+      },
+      create: {
+        job_id: job.id,
+        user_id: userId,
+        ranking: job.ranking,
+        status: 'new',
+      },
+      update: {
+        ranking: job.ranking,
+      },
     });
   }
 
-  async startScraping(pageNumber: number) {
+  async startScraping(pageNumber: number, userId: string) {
     if (this.status.isRunning) {
       // If already running, stop the scraping
       console.log('Scraper is already running, stopping...');
@@ -94,6 +361,9 @@ export class ScraperService {
     this.status.isRunning = true;
     this.status.currentPage = 1;
     this.status.totalJobs = 0;
+    
+    // Save the updated status to localStorage
+    this.saveStatus();
 
     try {
       const browser = await chromium.launch({ 
@@ -114,26 +384,42 @@ export class ScraperService {
       });
       const page = await context.newPage();
 
-      await this.scrapeJobs(page, pageNumber)
-
+      await this.scrapeJobs(page, pageNumber, userId);
+      
+      // Make sure to close the browser even if scraping was stopped
+      console.log('Closing browser...');
       await browser.close();
+      console.log('Browser closed');
     } catch (error) {
       console.error('Scraping failed:', error);
     } finally {
       this.status.isRunning = false;
       this.status.lastRun = new Date();
+      
+      // Save final status to localStorage
+      this.saveStatus();
     }
   } 
 
-  private async scrapeJobs(page: Page, pageNumber: number) {
+  private async scrapeJobs(page: Page, pageNumber: number, userId: string) {
+    // Reset force stop flag
+    this.status.forceStop = false;
+    
+    // Get user's job ranking prompt
+    console.log('Getting user job ranking prompt...');
+    const rankingPrompt = await this.getUserRankingPrompt(userId);
+    console.log('Retrieved job ranking prompt');
+    
+    // Start scraping
     const baseUrl = "https://www.jobs.ch/en/vacancies/?employment-type=1&employment-type=5&region=2&term=";
     let hasMorePages = true;
     let duplicateCount = 0;
-    const MAX_DUPLICATES = 10; // Stop after finding 5 duplicates in a row
     this.status.currentPage = pageNumber;
 
-    while (hasMorePages && this.status.isRunning) {
+    while (hasMorePages && this.status.isRunning && !this.status.forceStop) {
       try {
+        // Make sure to update the status object with current page number
+        this.status.currentPage = this.status.currentPage;
         console.log('Scraping page:', this.status.currentPage);
         const pageUrl = `${baseUrl}&page=${this.status.currentPage}`;
         await page.goto(pageUrl, { waitUntil: "load" });
@@ -157,7 +443,7 @@ export class ScraperService {
               duplicateCount++;
 
               // Stop if we've found too many duplicates in a row
-              if (duplicateCount >= MAX_DUPLICATES) {
+              if (duplicateCount >= this.MAX_DUPLICATES) {
                 console.log('Found multiple duplicate jobs in a row, stopping scraper');
                 hasMorePages = false;
                 this.status.isRunning = false;
@@ -168,8 +454,17 @@ export class ScraperService {
 
             // Reset duplicate counter when we find a new job
             duplicateCount = 0;
-            await this.processJob(job);
+            
+            // Save the job first to get an ID
+            const jobId = await this.saveJob(job);
+            job.id = jobId;
+            
+            // Now process the job with ranking using the user's prompt
+            await this.processJob(job, userId, rankingPrompt);
             this.status.totalJobs++;
+            
+            // Update localStorage with latest job count
+            this.saveStatus();
             if (!this.status.isRunning) {
               console.log('Scraper is not running, stopping...');
               break;
@@ -230,7 +525,7 @@ export class ScraperService {
     const jobContentMD = this.turndownService.turndown(jobContentHTML);
 
     const job: Job = {
-      id: 0,
+      id: 0, // This will be updated after saving
       published: publishedDate,
       title: filteredLines[1]?.trim() || "N/A",
       location: filteredLines[2]?.trim() || "N/A",
@@ -245,10 +540,8 @@ export class ScraperService {
       categories: jobCategories,
       status: JobStatus.NEW,
     };
-    // Implementation of job details scraping
-    // This would contain the logic from your test file
-    // console.log('Job:', job);
-    return job; // Placeholder
+    
+    return job;
   }
 
   private parsePublishedDate(dateStr: string): Date {

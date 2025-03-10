@@ -35,7 +35,7 @@ export function JobStatusButton({ jobId, currentStatus }: JobStatusButtonProps) 
         {statuses.map((status) => (
           <DropdownMenuItem
             key={status.value}
-            onClick={() => updateJobStatus(jobId, status.value as any)}
+            onClick={() => updateJobStatus(jobId, status.value as 'new' | 'applied' | 'rejected' | 'interview')}
           >
             {status.label}
           </DropdownMenuItem>
