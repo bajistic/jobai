@@ -9,26 +9,23 @@ export default function GoogleAnalytics() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
+  // Use the GA_ID from environment variable or fall back to the hardcoded ID
+  const gaId = config.googleAnalyticsId || 'G-HMN8SJF7B7';
+
   useEffect(() => {
-    if (!config.googleAnalyticsId) return
-    
     const url = pathname + (searchParams?.toString() ? `?${searchParams.toString()}` : '')
     
     // Send pageview with path
-    window.gtag?.('config', config.googleAnalyticsId, {
+    window.gtag?.('config', gaId, {
       page_path: url,
     })
-  }, [pathname, searchParams])
-
-  if (!config.googleAnalyticsId) {
-    return null
-  }
+  }, [pathname, searchParams, gaId])
 
   return (
     <>
       <Script
         strategy="afterInteractive"
-        src={`https://www.googletagmanager.com/gtag/js?id=${config.googleAnalyticsId}`}
+        src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
       />
       <Script
         id="gtag-init"
@@ -38,7 +35,7 @@ export default function GoogleAnalytics() {
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
-            gtag('config', '${config.googleAnalyticsId}', {
+            gtag('config', '${gaId}', {
               page_path: window.location.pathname,
             });
           `,
