@@ -54,8 +54,18 @@ model User {
   documents       UserDocument[]
   assistants      UserAssistant[]
   vectorStore     UserVectorStore[]
+  profile         UserProfile?
 
   @@index([id])
+}
+
+model UserProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  jobRankerPrompt String?  @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model VerificationToken {
@@ -164,4 +174,16 @@ model UserVectorStore {
   updatedAt     DateTime       @updatedAt
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   userDocuments UserDocument[]
+}
+
+model BetaRequest {
+  id          String   @id @default(cuid())
+  name        String
+  email       String
+  requestDate DateTime @default(now())
+  status      String   @default("pending") // pending, approved, rejected
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([email])
 }
