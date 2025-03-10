@@ -15,10 +15,11 @@ export async function GET() {
       where: { id: userId },
       include: {
         documents: true,
+        profile: true,
         assistants: {
           where: {
             assistantName: {
-              in: [`JobRanker_${userId}`, `Composer_${userId}`]
+              in: [`Composer_${userId}`]
             }
           }
         },
@@ -28,6 +29,31 @@ export async function GET() {
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
+    
+    // Get default job ranker prompt if no profile exists
+    const defaultJobRankerPrompt = `Analysiere die folgende Stellenanzeige und berechne Punkte basierend auf den folgenden Kriterien.
+
+Pluspunkte:
+(+4) Einstiegsstelle in jedem Bereich (Einsteiger, Quereinsteiger)
+(+4) Kaufmännische Lehre (Kaufmann EFZ, KV), oder lediglich Berufslehre/Grundbildung erfordert
+(+4) Kassenwesen und Kundendienst
+(+3) Software-/Webentwicklungsrolle
+(+3) IT-Support
+(+3) Grafikdesignrolle
+(+3) Logistik
+
+Pluspunkte für jedes Tool:
+(+1) Entwicklung: HTML, CSS, JavaScript, TypeScript, React, Next.js, Node.js, Express, Git
+(+1) Betriebssysteme: Linux
+(+0.5) Design-Tools: Photoshop, Illustrator, Figma
+(+0.5) Datenbank: MongoDB, PostgreSQL
+(+0.5) Sonstiges: MS Office, Python
+
+Minuspunkte:
+(-3) Fachspezifische Rolle in einem anderen Bereich als den oben genannten
+(-2) Ein Hochschulabschluss, Studium ist erforderlich
+(-2) Ein Zertifikat ist erforderlich
+(-1) Punkt für jedes Jahr Berufserfahrung in einem Bereich, der nicht oben genannt ist (z.B. (-4) wenn 4 Jahre Erfahrung erfordert) oder (-3) wenn "mehrjährige" Erfahrung`;
 
     return NextResponse.json({
       id: user.id,
@@ -35,8 +61,9 @@ export async function GET() {
       email: user.email,
       image: user.image,
       documents: user.documents,
-      systemPrompt: user.assistants[0].systemPrompt,
+      systemPrompt: user.assistants[0]?.systemPrompt || '',
       assistants: user.assistants,
+      jobRankerPrompt: user.profile?.jobRankerPrompt || defaultJobRankerPrompt,
     })
   } catch (error) {
     console.error('Error fetching profile:', error)
@@ -73,10 +100,10 @@ export async function PUT(request: Request) {
       }
     });
 
-    // Then update assistants if prompts changed
+    // Then update job ranker prompt if changed
     if (data.jobRankerPrompt) {
       const openAIService = OpenAIService.getInstance();
-      await openAIService.updateJobRankingAssistant(userId, userJobRanker?.assistantId ?? "", data.jobRankerPrompt);
+      await openAIService.updateJobRankingPrompt(userId, data.jobRankerPrompt);
     }
 
     if (data.composerPrompt) {

@@ -37,46 +37,82 @@ function SignInContent() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <Card className="w-[350px]">
-        <CardHeader className="text-2xl font-bold text-center">
-          Sign In
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <div className="text-red-500 text-sm text-center">{error}</div>
-            )}
-            <div className="space-y-2">
-              <Input
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Input
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            <Button type="submit" className="w-full">
-              Sign In
-            </Button>
-          </form>
-          <div className="mt-4 text-center text-sm">
-            Don&apos;t have an account?{' '}
-            <Link href="/auth/signup" className="text-blue-500 hover:underline">
-              Sign Up
-            </Link>
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900 px-4 py-8">
+      <div className="w-full max-w-md">
+        <Link href="/" className="flex items-center gap-2 mb-6 justify-center">
+          <div className="bg-primary/10 p-1.5 rounded-full">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="text-primary"
+            >
+              <path d="M13 2H3a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V9z"></path>
+              <path d="M13 2v7h7"></path>
+              <path d="m9 17-2-2-2 2"></path>
+              <path d="M9 11v6"></path>
+              <path d="m17 17 2-2 2 2"></path>
+              <path d="M17 11v6"></path>
+            </svg>
           </div>
-        </CardContent>
-      </Card>
+          <span className="text-xl font-bold">ZapJob</span>
+        </Link>
+        
+        <Card className="shadow-lg dark:bg-gray-800">
+          <CardHeader className="text-center pb-2">
+            <h1 className="text-2xl font-bold">Beta Access Sign In</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Sign in with your approved beta credentials
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 p-3 rounded-md mb-4 text-sm">
+              <p>Access is currently limited to approved beta testers only.</p>
+            </div>
+            
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="text-red-500 text-sm text-center p-2 bg-red-50 dark:bg-red-950/30 rounded-md">
+                  {error}
+                </div>
+              )}
+              <div className="space-y-2">
+                <Input
+                  type="email"
+                  placeholder="Email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Input
+                  type="password"
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full rounded-full">
+                Sign In
+              </Button>
+            </form>
+            <div className="mt-4 text-center text-sm">
+              Need beta access?{' '}
+              <Link href="/auth/beta-signup" className="text-primary hover:underline">
+                Request Access
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
