@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { toast } from 'sonner'
 import { Suspense } from 'react'
+import { trackEvent, AnalyticsEvents } from '@/lib/analytics'
 
 function BetaSignUpContent() {
   const router = useRouter()
@@ -39,6 +40,11 @@ function BetaSignUpContent() {
           email,
           name
         }),
+      })
+      
+      // Track the event in analytics
+      trackEvent(AnalyticsEvents.BETA_REQUESTED, {
+        source: 'beta_signup_form'
       })
       
       // Show success message and redirect

@@ -5,6 +5,7 @@ import { Search } from 'lucide-react'
 import { Input } from "@/components/ui/input"
 import { useDebounce } from '@/lib/hooks/useDebounce'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
+import { trackEvent, AnalyticsEvents } from '@/lib/analytics'
 
 export function SearchBar() {
   const router = useRouter()
@@ -17,6 +18,14 @@ export function SearchBar() {
     const params = new URLSearchParams(searchParams)
     if (debouncedSearch) {
       params.set('q', debouncedSearch)
+      
+      // Track search event when user completes typing (debounced)
+      if (debouncedSearch.length > 2) {
+        trackEvent(AnalyticsEvents.JOBS_SEARCHED, {
+          search_term: debouncedSearch,
+          page: pathname,
+        })
+      }
     } else {
       params.delete('q')
     }
