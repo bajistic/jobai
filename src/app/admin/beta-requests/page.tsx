@@ -48,24 +48,41 @@ const mockBetaRequests: BetaRequest[] = [
 export default function BetaRequestsAdminPage() {
   const { data: session, status } = useSession()
   const [betaRequests, setBetaRequests] = useState<BetaRequest[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isLocal, setIsLocal] = useState(false)
   
   useEffect(() => {
+    // Check if we're running in development mode on localhost
+    const isLocalhost = window.location.hostname === 'localhost' || 
+                        window.location.hostname === '127.0.0.1'
+    
     // Fetch actual beta requests
     const fetchBetaRequests = async () => {
+      setIsLoading(true)
       try {
-        const response = await fetch('/api/admin/beta-requests')
-        if (response.ok) {
-          const data = await response.json()
-          setBetaRequests(data)
-        } else {
-          console.error('Failed to fetch beta requests')
-          // Fall back to mock data in case of error
+        // Use mock data in development mode unless explicitly overridden
+        if (process.env.NODE_ENV === 'development' && isLocalhost && !process.env.NEXT_PUBLIC_USE_REAL_API) {
+          console.log('Using mock beta requests for local development')
           setBetaRequests(mockBetaRequests)
+          setIsLocal(true)
+        } else {
+          const response = await fetch('/api/admin/beta-requests')
+          if (response.ok) {
+            const data = await response.json()
+            setBetaRequests(data)
+          } else {
+            console.error('Failed to fetch beta requests, falling back to mock data')
+            setBetaRequests(mockBetaRequests)
+            setIsLocal(true)
+          }
         }
       } catch (error) {
         console.error('Error fetching beta requests:', error)
         // Fall back to mock data in case of error
         setBetaRequests(mockBetaRequests)
+        setIsLocal(true)
+      } finally {
+        setIsLoading(false)
       }
     }
     
@@ -111,59 +128,72 @@ export default function BetaRequestsAdminPage() {
   return (
     <div className="p-6">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6">Beta Access Requests</h1>
-        
-        <div className="grid gap-4">
-          {betaRequests.map(request => (
-            <Card key={request.id} className="overflow-hidden">
-              <CardHeader className="bg-gray-50 dark:bg-gray-800 flex flex-row items-start justify-between p-4">
-                <div>
-                  <div className="font-bold">{request.name}</div>
-                  <div className="text-sm text-gray-500">{request.email}</div>
-                  <div className="text-xs text-gray-400 mt-1">
-                    {new Date(request.requestDate).toLocaleDateString()} at {new Date(request.requestDate).toLocaleTimeString()}
-                  </div>
-                </div>
-                <Badge 
-                  className={
-                    request.status === 'approved' ? 'bg-green-500' :
-                    request.status === 'rejected' ? 'bg-red-500' : 'bg-yellow-500'
-                  }
-                >
-                  {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-                </Badge>
-              </CardHeader>
-              <CardContent className="p-4">
-                <h3 className="font-medium mb-2">Reason for access:</h3>
-                <p className="text-gray-600 dark:text-gray-300 mb-4">{request.reason}</p>
-                
-                <div className="flex gap-2 justify-end">
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    onClick={() => updateRequestStatus(request.id, 'rejected')}
-                    disabled={request.status === 'rejected'}
-                  >
-                    Reject
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    onClick={() => updateRequestStatus(request.id, 'approved')}
-                    disabled={request.status === 'approved'}
-                  >
-                    Approve
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-          
-          {betaRequests.length === 0 && (
-            <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <p className="text-gray-500">No beta access requests yet.</p>
-            </div>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Beta Access Requests</h1>
+          {isLocal && (
+            <Badge variant="outline" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+              Using Mock Data
+            </Badge>
           )}
         </div>
+        
+        {isLoading ? (
+          <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <p className="text-gray-500">Loading beta requests...</p>
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            {betaRequests.map(request => (
+              <Card key={request.id} className="overflow-hidden">
+                <CardHeader className="bg-gray-50 dark:bg-gray-800 flex flex-row items-start justify-between p-4">
+                  <div>
+                    <div className="font-bold">{request.name}</div>
+                    <div className="text-sm text-gray-500">{request.email}</div>
+                    <div className="text-xs text-gray-400 mt-1">
+                      {new Date(request.requestDate).toLocaleDateString()} at {new Date(request.requestDate).toLocaleTimeString()}
+                    </div>
+                  </div>
+                  <Badge 
+                    className={
+                      request.status === 'approved' ? 'bg-green-500' :
+                      request.status === 'rejected' ? 'bg-red-500' : 'bg-yellow-500'
+                    }
+                  >
+                    {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                  </Badge>
+                </CardHeader>
+                <CardContent className="p-4">
+                  <h3 className="font-medium mb-2">Reason for access:</h3>
+                  <p className="text-gray-600 dark:text-gray-300 mb-4">{request.reason}</p>
+                  
+                  <div className="flex gap-2 justify-end">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => updateRequestStatus(request.id, 'rejected')}
+                      disabled={request.status === 'rejected' || isLocal}
+                    >
+                      Reject
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      onClick={() => updateRequestStatus(request.id, 'approved')}
+                      disabled={request.status === 'approved' || isLocal}
+                    >
+                      Approve
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+            
+            {betaRequests.length === 0 && (
+              <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <p className="text-gray-500">No beta access requests yet.</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
