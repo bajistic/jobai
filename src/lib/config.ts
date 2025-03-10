@@ -6,7 +6,7 @@ export const config = {
   // Google Service Account for Google Docs integration
   googleServiceAccount: {
     clientEmail: process.env.GOOGLE_CLIENT_EMAIL!,
-    privateKey: process.env.GOOGLE_PRIVATE_KEY!.replace(/\\n/g, '\n'),
+    privateKey: process.env.GOOGLE_PRIVATE_KEY!,
     userEmail: process.env.GOOGLE_USER_EMAIL!,
   },
 } 
