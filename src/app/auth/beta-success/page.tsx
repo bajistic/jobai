@@ -6,10 +6,10 @@ import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card"
 
 export default function BetaSuccessPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900 px-4 py-8">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-950 px-4 py-8 text-gray-900 dark:text-gray-50">
       <div className="w-full max-w-md">
         <Link href="/" className="flex items-center gap-2 mb-6 justify-center">
-          <div className="bg-primary/10 p-1.5 rounded-full">
+          <div className="bg-primary/10 dark:bg-primary/20 p-1.5 rounded-full">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="24"
@@ -33,9 +33,9 @@ export default function BetaSuccessPage() {
           <span className="text-xl font-bold">ZapJob</span>
         </Link>
         
-        <Card className="shadow-lg dark:bg-gray-800">
+        <Card className="shadow-lg dark:bg-gray-800 dark:border-gray-700">
           <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 dark:bg-primary/20">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="32"
@@ -55,19 +55,19 @@ export default function BetaSuccessPage() {
             <h1 className="text-2xl font-bold">Beta Request Received!</h1>
           </CardHeader>
           <CardContent className="text-center space-y-4">
-            <p className="text-gray-500 dark:text-gray-400">
+            <p className="text-gray-500 dark:text-gray-300">
               Thank you for your interest in ZapJob! We've received your beta access request.
             </p>
-            <div className="rounded-lg bg-primary/5 p-4 dark:bg-primary/10">
-              <h3 className="font-medium mb-1">What happens next?</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+            <div className="rounded-lg bg-primary/5 p-4 dark:bg-primary/10 border border-primary/10 dark:border-primary/20">
+              <h3 className="font-medium mb-1 dark:text-gray-100">What happens next?</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-300">
                 We'll review your request and notify you via email when your access is granted. This usually takes 1-2 business days.
               </p>
             </div>
           </CardContent>
           <CardFooter className="flex justify-center pt-2">
             <Link href="/">
-              <Button variant="outline" className="rounded-full">
+              <Button variant="outline" className="rounded-full dark:border-gray-600 dark:bg-gray-800 dark:hover:bg-gray-700">
                 Return to Home
               </Button>
             </Link>

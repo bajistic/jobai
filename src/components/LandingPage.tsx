@@ -8,11 +8,11 @@ export default function LandingPage() {
   const router = useRouter()
 
   return (
-    <div className="flex flex-col min-h-screen bg-white dark:bg-gray-950">
+    <div className="flex flex-col min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-50">
       <header className="px-6 py-4 border-b bg-white dark:bg-gray-950 dark:border-gray-800 sticky top-0 z-10">
         <div className="container mx-auto max-w-7xl flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="bg-primary/10 p-1.5 rounded-full">
+            <div className="bg-primary/10 dark:bg-primary/20 p-1.5 rounded-full">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="24"
@@ -144,13 +144,13 @@ export default function LandingPage() {
             <div className="grid gap-6 items-center">
               <div className="text-center space-y-4">
                 <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">Key Features</h2>
-                <p className="max-w-[600px] mx-auto text-gray-500 dark:text-gray-400 md:text-xl">
+                <p className="max-w-[600px] mx-auto text-gray-500 dark:text-gray-300 md:text-xl">
                   Streamline your job search process with our powerful AI tools
                 </p>
               </div>
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                <div className="flex flex-col items-center space-y-3 p-6 bg-white dark:bg-gray-800 rounded-xl shadow hover:shadow-md transition-shadow">
-                  <div className="p-3 bg-primary/10 rounded-full text-primary">
+                <div className="flex flex-col items-center space-y-3 p-6 bg-white dark:bg-gray-800 rounded-xl shadow hover:shadow-md transition-shadow border border-gray-100 dark:border-gray-700">
+                  <div className="p-3 bg-primary/10 dark:bg-primary/20 rounded-full text-primary">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="24"
@@ -171,12 +171,12 @@ export default function LandingPage() {
                     </svg>
                   </div>
                   <h3 className="text-xl font-bold">Automated Job Search</h3>
-                  <p className="text-center text-gray-500 dark:text-gray-400">
+                  <p className="text-center text-gray-500 dark:text-gray-300">
                     Leverage advanced AI to explore opportunities tailored to your skills and preferences
                   </p>
                 </div>
-                <div className="flex flex-col items-center space-y-3 p-6 bg-white dark:bg-gray-800 rounded-xl shadow hover:shadow-md transition-shadow">
-                  <div className="p-3 bg-primary/10 rounded-full text-primary">
+                <div className="flex flex-col items-center space-y-3 p-6 bg-white dark:bg-gray-800 rounded-xl shadow hover:shadow-md transition-shadow border border-gray-100 dark:border-gray-700">
+                  <div className="p-3 bg-primary/10 dark:bg-primary/20 rounded-full text-primary">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="24"
@@ -193,12 +193,12 @@ export default function LandingPage() {
                     </svg>
                   </div>
                   <h3 className="text-xl font-bold">Smart Cover Letters</h3>
-                  <p className="text-center text-gray-500 dark:text-gray-400">
+                  <p className="text-center text-gray-500 dark:text-gray-300">
                     Generate personalized cover letters optimized for each job application
                   </p>
                 </div>
-                <div className="flex flex-col items-center space-y-3 p-6 bg-white dark:bg-gray-800 rounded-xl shadow hover:shadow-md transition-shadow">
-                  <div className="p-3 bg-primary/10 rounded-full text-primary">
+                <div className="flex flex-col items-center space-y-3 p-6 bg-white dark:bg-gray-800 rounded-xl shadow hover:shadow-md transition-shadow border border-gray-100 dark:border-gray-700">
+                  <div className="p-3 bg-primary/10 dark:bg-primary/20 rounded-full text-primary">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="24"
@@ -217,7 +217,7 @@ export default function LandingPage() {
                     </svg>
                   </div>
                   <h3 className="text-xl font-bold">Interview Preparation</h3>
-                  <p className="text-center text-gray-500 dark:text-gray-400">
+                  <p className="text-center text-gray-500 dark:text-gray-300">
                     Get ready with AI-generated questions, tips, and simulated practice sessions
                   </p>
                 </div>

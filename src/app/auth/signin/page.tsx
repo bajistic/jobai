@@ -37,10 +37,10 @@ function SignInContent() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900 px-4 py-8">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-950 px-4 py-8 text-gray-900 dark:text-gray-50">
       <div className="w-full max-w-md">
         <Link href="/" className="flex items-center gap-2 mb-6 justify-center">
-          <div className="bg-primary/10 p-1.5 rounded-full">
+          <div className="bg-primary/10 dark:bg-primary/20 p-1.5 rounded-full">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="24"
@@ -64,21 +64,21 @@ function SignInContent() {
           <span className="text-xl font-bold">ZapJob</span>
         </Link>
         
-        <Card className="shadow-lg dark:bg-gray-800">
+        <Card className="shadow-lg dark:bg-gray-800 dark:border-gray-700">
           <CardHeader className="text-center pb-2">
             <h1 className="text-2xl font-bold">Beta Access Sign In</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-gray-500 dark:text-gray-300">
               Sign in with your approved beta credentials
             </p>
           </CardHeader>
           <CardContent>
-            <div className="bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 p-3 rounded-md mb-4 text-sm">
+            <div className="bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200 p-3 rounded-md mb-4 text-sm border border-blue-100 dark:border-blue-800">
               <p>Access is currently limited to approved beta testers only.</p>
             </div>
             
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
-                <div className="text-red-500 text-sm text-center p-2 bg-red-50 dark:bg-red-950/30 rounded-md">
+                <div className="text-red-500 dark:text-red-400 text-sm text-center p-2 bg-red-50 dark:bg-red-950/30 rounded-md border border-red-100 dark:border-red-900/50">
                   {error}
                 </div>
               )}
@@ -89,6 +89,7 @@ function SignInContent() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  className="dark:border-gray-700 dark:bg-gray-800/50"
                 />
               </div>
               <div className="space-y-2">
@@ -98,13 +99,14 @@ function SignInContent() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  className="dark:border-gray-700 dark:bg-gray-800/50"
                 />
               </div>
               <Button type="submit" className="w-full rounded-full">
                 Sign In
               </Button>
             </form>
-            <div className="mt-4 text-center text-sm">
+            <div className="mt-4 text-center text-sm dark:text-gray-300">
               Need beta access?{' '}
               <Link href="/auth/beta-signup" className="text-primary hover:underline">
                 Request Access

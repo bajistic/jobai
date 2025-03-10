@@ -59,10 +59,10 @@ function BetaSignUpContent() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900 px-4 py-8">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-950 px-4 py-8 text-gray-900 dark:text-gray-50">
       <div className="w-full max-w-md">
         <Link href="/" className="flex items-center gap-2 mb-6 justify-center">
-          <div className="bg-primary/10 p-1.5 rounded-full">
+          <div className="bg-primary/10 dark:bg-primary/20 p-1.5 rounded-full">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="24"
@@ -86,34 +86,35 @@ function BetaSignUpContent() {
           <span className="text-xl font-bold">ZapJob</span>
         </Link>
       
-        <Card className="shadow-lg dark:bg-gray-800">
+        <Card className="shadow-lg dark:bg-gray-800 dark:border-gray-700">
           <CardHeader className="text-center pb-2">
             <h1 className="text-2xl font-bold">Request Beta Access</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-gray-500 dark:text-gray-300">
               Join our exclusive beta program and be the first to use ZapJob
             </p>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               {error && (
-                <div className="text-red-500 text-sm text-center p-2 bg-red-50 dark:bg-red-950/30 rounded-md">
+                <div className="text-red-500 dark:text-red-400 text-sm text-center p-2 bg-red-50 dark:bg-red-950/30 rounded-md border border-red-100 dark:border-red-900/50">
                   {error}
                 </div>
               )}
               
               <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
+                <Label htmlFor="name" className="dark:text-gray-200">Full Name</Label>
                 <Input
                   id="name"
                   placeholder="Enter your full name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
+                  className="dark:border-gray-700 dark:bg-gray-800/50"
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
+                <Label htmlFor="email" className="dark:text-gray-200">Email Address</Label>
                 <Input
                   id="email"
                   type="email"
@@ -121,6 +122,7 @@ function BetaSignUpContent() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  className="dark:border-gray-700 dark:bg-gray-800/50"
                 />
               </div>
               
@@ -129,8 +131,9 @@ function BetaSignUpContent() {
                   id="terms" 
                   checked={agreedTerms} 
                   onCheckedChange={(checked) => setAgreedTerms(checked as boolean)}
+                  className="dark:border-gray-600"
                 />
-                <Label htmlFor="terms" className="text-sm leading-tight">
+                <Label htmlFor="terms" className="text-sm leading-tight dark:text-gray-300">
                   I agree to receive updates about ZapJob and understand my data will be processed in accordance with the <a href="#" className="text-primary hover:underline">Privacy Policy</a>.
                 </Label>
               </div>
@@ -145,7 +148,7 @@ function BetaSignUpContent() {
             </form>
           </CardContent>
           <CardFooter className="flex flex-col space-y-2 pt-0">
-            <div className="text-center text-sm">
+            <div className="text-center text-sm dark:text-gray-300">
               <Link href="/" className="text-primary hover:underline">
                 Return to Home
               </Link>
