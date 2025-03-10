@@ -10,6 +10,37 @@ export default {
   theme: {
   	extend: {
   		colors: {
+  		  // ZapJob brand colors (direct CSS variables)
+  		  brand: {
+  		    primary: 'var(--brand-primary)',
+  		    secondary: 'var(--brand-secondary)',
+  		    tertiary: 'var(--brand-tertiary)',
+  		    accent: 'var(--brand-accent)',
+  		  },
+  		  // UI colors
+  		  ui: {
+  		    background: 'var(--ui-background)',
+  		    foreground: 'var(--ui-foreground)',
+  		    card: 'var(--ui-card)',
+  		    border: 'var(--ui-border)',
+  		    hover: 'var(--ui-hover)',
+  		  },
+  		  // Status colors
+  		  status: {
+  		    success: 'var(--status-success)',
+  		    warning: 'var(--status-warning)',
+  		    error: 'var(--status-error)',
+  		    info: 'var(--status-info)',
+  		  },
+  		  // Text content colors
+  		  content: {
+  		    primary: 'var(--text-primary)',
+  		    secondary: 'var(--text-secondary)',
+  		    tertiary: 'var(--text-tertiary)',
+  		    disabled: 'var(--text-disabled)',
+  		    'on-primary': 'var(--text-on-primary)',
+  		  },
+  			// Original shadcn colors
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			card: {
@@ -65,6 +96,17 @@ export default {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
   			sm: 'calc(var(--radius) - 4px)'
+  		},
+  		// Background gradients
+  		backgroundImage: {
+  		  'brand-gradient': 'linear-gradient(to right, var(--brand-primary), var(--brand-secondary))',
+  		  'brand-gradient-vertical': 'linear-gradient(to bottom, var(--brand-primary), var(--brand-secondary))',
+  		},
+  		// Box shadows with brand colors
+  		boxShadow: {
+  		  'brand-sm': '0 2px 4px rgba(var(--brand-primary-rgb), 0.1)',
+  		  'brand-md': '0 4px 8px rgba(var(--brand-primary-rgb), 0.15)',
+  		  'brand-lg': '0 8px 16px rgba(var(--brand-primary-rgb), 0.2)',
   		}
   	}
   },

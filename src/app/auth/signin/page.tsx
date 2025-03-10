@@ -40,7 +40,7 @@ function SignInContent() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-950 px-4 py-8 text-gray-900 dark:text-gray-50">
       <div className="w-full max-w-md">
         <Link href="/" className="flex items-center gap-2 mb-6 justify-center">
-          <div className="bg-primary/10 dark:bg-primary/20 p-1.5 rounded-full">
+          <div className="bg-primary/10 dark:bg-primary/30 p-1.5 rounded-full">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="24"
@@ -51,7 +51,7 @@ function SignInContent() {
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="text-primary"
+              className="text-primary dark:text-primary-foreground"
             >
               <path d="M13 2H3a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V9z"></path>
               <path d="M13 2v7h7"></path>
@@ -61,7 +61,7 @@ function SignInContent() {
               <path d="M17 11v6"></path>
             </svg>
           </div>
-          <span className="text-xl font-bold">ZapJob</span>
+          <span className="text-xl font-bold text-gray-900 dark:text-white">ZapJob</span>
         </Link>
         
         <Card className="shadow-lg dark:bg-gray-800 dark:border-gray-700">

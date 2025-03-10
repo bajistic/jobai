@@ -12,7 +12,7 @@ export default function LandingPage() {
       <header className="px-6 py-4 border-b bg-white dark:bg-gray-950 dark:border-gray-800 sticky top-0 z-10">
         <div className="container mx-auto max-w-7xl flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="bg-primary/10 dark:bg-primary/20 p-1.5 rounded-full">
+            <div className="bg-primary/10 dark:bg-primary/30 p-1.5 rounded-full">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="24"
@@ -23,7 +23,7 @@ export default function LandingPage() {
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="text-primary"
+                className="text-primary dark:text-primary-foreground"
               >
                 <path d="M13 2H3a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V9z"></path>
                 <path d="M13 2v7h7"></path>
@@ -33,7 +33,7 @@ export default function LandingPage() {
                 <path d="M17 11v6"></path>
               </svg>
             </div>
-            <span className="text-xl font-bold">ZapJob</span>
+            <span className="text-xl font-bold text-gray-900 dark:text-white">ZapJob</span>
           </div>
           <div className="flex items-center gap-4">
             <Link href="/auth/beta-signup">
@@ -49,12 +49,12 @@ export default function LandingPage() {
               <div className="flex flex-col justify-center space-y-4">
                 <div className="space-y-2">
                   <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
-                    Introducing <span className="text-primary">ZapJob</span>
+                    Introducing ZapJob
                   </h1>
                   <h2 className="text-2xl font-medium tracking-tight sm:text-3xl">
                     Your AI Job Assistant
                   </h2>
-                  <p className="max-w-[600px] text-gray-500 dark:text-gray-400 md:text-xl">
+                  <p className="max-w-[600px] text-gray-500 dark:text-gray-300 md:text-xl">
                     Experience the future of job hunting with our cutting-edge AI Job Assistant. Designed to automate your entire job search process, from finding perfect listings to preparing you for interviews.
                   </p>
                 </div>
@@ -150,7 +150,7 @@ export default function LandingPage() {
               </div>
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="flex flex-col items-center space-y-3 p-6 bg-white dark:bg-gray-800 rounded-xl shadow hover:shadow-md transition-shadow border border-gray-100 dark:border-gray-700">
-                  <div className="p-3 bg-primary/10 dark:bg-primary/20 rounded-full text-primary">
+                  <div className="p-3 bg-primary/10 dark:bg-primary/30 rounded-full text-primary dark:text-primary-foreground">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="24"
@@ -176,7 +176,7 @@ export default function LandingPage() {
                   </p>
                 </div>
                 <div className="flex flex-col items-center space-y-3 p-6 bg-white dark:bg-gray-800 rounded-xl shadow hover:shadow-md transition-shadow border border-gray-100 dark:border-gray-700">
-                  <div className="p-3 bg-primary/10 dark:bg-primary/20 rounded-full text-primary">
+                  <div className="p-3 bg-primary/10 dark:bg-primary/30 rounded-full text-primary dark:text-primary-foreground">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="24"
@@ -198,7 +198,7 @@ export default function LandingPage() {
                   </p>
                 </div>
                 <div className="flex flex-col items-center space-y-3 p-6 bg-white dark:bg-gray-800 rounded-xl shadow hover:shadow-md transition-shadow border border-gray-100 dark:border-gray-700">
-                  <div className="p-3 bg-primary/10 dark:bg-primary/20 rounded-full text-primary">
+                  <div className="p-3 bg-primary/10 dark:bg-primary/30 rounded-full text-primary dark:text-primary-foreground">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="24"
@@ -225,7 +225,7 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
-        
+
         <section className="py-16 md:py-24 bg-gradient-to-r from-primary/5 to-primary/10">
           <div className="container mx-auto max-w-7xl px-4 md:px-6">
             <div className="grid gap-8 md:grid-cols-2 items-center">
@@ -318,7 +318,7 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
-        
+
         <section className="py-16 md:py-24">
           <div className="container mx-auto max-w-7xl px-4 md:px-6">
             <div className="grid gap-10 md:grid-cols-2 items-center">
@@ -366,7 +366,7 @@ export default function LandingPage() {
         <div className="container mx-auto max-w-7xl px-4 md:px-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-2">
-              <div className="bg-primary/10 p-1.5 rounded-full">
+              <div className="bg-primary/10 dark:bg-primary/30 p-1.5 rounded-full">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="20"
@@ -377,7 +377,7 @@ export default function LandingPage() {
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="text-primary"
+                  className="text-primary dark:text-primary-foreground"
                 >
                   <path d="M13 2H3a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V9z"></path>
                   <path d="M13 2v7h7"></path>
@@ -387,7 +387,7 @@ export default function LandingPage() {
                   <path d="M17 11v6"></path>
                 </svg>
               </div>
-              <span className="text-lg font-bold">ZapJob</span>
+              <span className="text-lg font-bold text-gray-900 dark:text-white">ZapJob</span>
             </div>
             <div className="flex flex-col md:flex-row gap-4 md:gap-8 items-center">
               <Link href="/auth/beta-signup" className="text-sm text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary">

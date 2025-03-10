@@ -9,7 +9,7 @@ export default function BetaSuccessPage() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-950 px-4 py-8 text-gray-900 dark:text-gray-50">
       <div className="w-full max-w-md">
         <Link href="/" className="flex items-center gap-2 mb-6 justify-center">
-          <div className="bg-primary/10 dark:bg-primary/20 p-1.5 rounded-full">
+          <div className="bg-primary/10 dark:bg-primary/30 p-1.5 rounded-full">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="24"
@@ -20,7 +20,7 @@ export default function BetaSuccessPage() {
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="text-primary"
+              className="text-primary dark:text-primary-foreground"
             >
               <path d="M13 2H3a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V9z"></path>
               <path d="M13 2v7h7"></path>
@@ -30,12 +30,12 @@ export default function BetaSuccessPage() {
               <path d="M17 11v6"></path>
             </svg>
           </div>
-          <span className="text-xl font-bold">ZapJob</span>
+          <span className="text-xl font-bold text-gray-900 dark:text-white">ZapJob</span>
         </Link>
         
         <Card className="shadow-lg dark:bg-gray-800 dark:border-gray-700">
           <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 dark:bg-primary/20">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 dark:bg-primary/30">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="32"
@@ -46,7 +46,7 @@ export default function BetaSuccessPage() {
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="text-primary"
+                className="text-primary dark:text-primary-foreground"
               >
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                 <polyline points="22 4 12 14.01 9 11.01"></polyline>

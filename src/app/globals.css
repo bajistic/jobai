@@ -8,6 +8,30 @@ body {
 
 @layer base {
   :root {
+    /* System theme colors */
+    --brand-primary: hsl(230, 80%, 50%);
+    --brand-secondary: hsl(200, 75%, 55%);
+    --brand-tertiary: hsl(250, 70%, 60%);
+    --brand-accent: hsl(320, 75%, 60%);
+    
+    --ui-background: hsl(0, 0%, 100%);
+    --ui-foreground: hsl(240, 10%, 10%);
+    --ui-card: hsl(0, 0%, 100%);
+    --ui-border: hsl(240, 5%, 90%);
+    --ui-hover: hsl(240, 5%, 95%);
+    
+    --status-success: hsl(145, 70%, 45%);
+    --status-warning: hsl(40, 90%, 55%);
+    --status-error: hsl(0, 80%, 60%);
+    --status-info: hsl(210, 80%, 60%);
+    
+    --text-primary: hsl(240, 10%, 10%);
+    --text-secondary: hsl(240, 5%, 40%);
+    --text-tertiary: hsl(240, 5%, 60%);
+    --text-disabled: hsl(240, 5%, 70%);
+    --text-on-primary: hsl(0, 0%, 100%);
+    
+    /* Original shadcn variables */
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
@@ -43,6 +67,30 @@ body {
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
   .dark {
+    /* System theme colors - dark mode */
+    --brand-primary: hsl(230, 80%, 60%);
+    --brand-secondary: hsl(200, 75%, 65%);
+    --brand-tertiary: hsl(250, 70%, 70%);
+    --brand-accent: hsl(320, 75%, 70%);
+    
+    --ui-background: hsl(240, 10%, 10%);
+    --ui-foreground: hsl(0, 0%, 95%);
+    --ui-card: hsl(240, 10%, 15%);
+    --ui-border: hsl(240, 5%, 20%);
+    --ui-hover: hsl(240, 5%, 25%);
+    
+    --status-success: hsl(145, 70%, 55%);
+    --status-warning: hsl(40, 90%, 65%);
+    --status-error: hsl(0, 80%, 70%);
+    --status-info: hsl(210, 80%, 70%);
+    
+    --text-primary: hsl(0, 0%, 95%);
+    --text-secondary: hsl(240, 5%, 80%);
+    --text-tertiary: hsl(240, 5%, 60%);
+    --text-disabled: hsl(240, 5%, 40%);
+    --text-on-primary: hsl(0, 0%, 100%);
+    
+    /* Original shadcn variables */
     --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
     --card: 240 10% 3.9%;
@@ -84,5 +132,89 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Theme utility classes */
+@layer utilities {
+  .text-brand-primary {
+    color: var(--brand-primary);
+  }
+  .text-brand-secondary {
+    color: var(--brand-secondary);
+  }
+  .text-brand-tertiary {
+    color: var(--brand-tertiary);
+  }
+  .text-brand-accent {
+    color: var(--brand-accent);
+  }
+  
+  .bg-brand-primary {
+    background-color: var(--brand-primary);
+  }
+  .bg-brand-secondary {
+    background-color: var(--brand-secondary);
+  }
+  .bg-brand-tertiary {
+    background-color: var(--brand-tertiary);
+  }
+  .bg-brand-accent {
+    background-color: var(--brand-accent);
+  }
+  
+  .text-status-success {
+    color: var(--status-success);
+  }
+  .text-status-warning {
+    color: var(--status-warning);
+  }
+  .text-status-error {
+    color: var(--status-error);
+  }
+  .text-status-info {
+    color: var(--status-info);
+  }
+  
+  .bg-status-success {
+    background-color: var(--status-success);
+  }
+  .bg-status-warning {
+    background-color: var(--status-warning);
+  }
+  .bg-status-error {
+    background-color: var(--status-error);
+  }
+  .bg-status-info {
+    background-color: var(--status-info);
+  }
+  
+  .text-primary-content {
+    color: var(--text-primary);
+  }
+  .text-secondary-content {
+    color: var(--text-secondary);
+  }
+  .text-tertiary-content {
+    color: var(--text-tertiary);
+  }
+  .text-disabled-content {
+    color: var(--text-disabled);
+  }
+  .text-on-primary-content {
+    color: var(--text-on-primary);
+  }
+  
+  /* Border utilities */
+  .border-ui {
+    border-color: var(--ui-border);
+  }
+  
+  /* Background utilities */
+  .bg-ui-card {
+    background-color: var(--ui-card);
+  }
+  .bg-ui-hover {
+    background-color: var(--ui-hover);
   }
 }
