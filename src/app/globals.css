@@ -218,3 +218,43 @@ body {
     background-color: var(--ui-hover);
   }
 }
+
+/* Fix for job description content in dark mode */
+.dark .prose {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.dark .prose h1,
+.dark .prose h2,
+.dark .prose h3,
+.dark .prose h4,
+.dark .prose h5,
+.dark .prose h6,
+.dark .prose strong {
+  color: white;
+}
+
+.dark .prose a {
+  color: var(--brand-primary);
+}
+
+.dark .prose ul, 
+.dark .prose ol,
+.dark .prose p,
+.dark .prose li {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.dark .prose blockquote {
+  color: rgba(255, 255, 255, 0.7);
+  border-left-color: rgba(255, 255, 255, 0.2);
+}
+
+.dark .prose hr {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.dark .prose code {
+  color: rgb(249, 169, 89);
+  background-color: rgba(255, 255, 255, 0.1);
+}

@@ -171,10 +171,10 @@ export function JobCard({ job, onUpdate, isSelected, onSelect }: JobCardProps) {
           </DropdownMenu>
         </CardHeader>
         <CardContent>
-          <p className="text-sm font-medium text-muted-foreground">{job.company}</p>
-          <p className="text-sm text-muted-foreground">{job.location}</p>
+          <p className="text-sm font-medium text-muted-foreground dark:text-gray-300">{job.company}</p>
+          <p className="text-sm text-muted-foreground dark:text-gray-300">{job.location}</p>
           <div className="flex gap-2 mt-2">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground dark:text-gray-300">
               {job.published ? new Date(job.published).toLocaleDateString('de-CH', {
                 day: '2-digit',
                 month: '2-digit',

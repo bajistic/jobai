@@ -18,7 +18,7 @@ export default function JobPreview({ selectedJob, onBack }: JobPreviewProps) {
   if (!selectedJob) {
     return (
       <div className="h-[calc(100vh-4rem)] flex items-center justify-center">
-        <p className="text-muted-foreground">Select a job to view details</p>
+        <p className="text-muted-foreground dark:text-gray-300">Select a job to view details</p>
       </div>
     )
   }
@@ -38,10 +38,10 @@ export default function JobPreview({ selectedJob, onBack }: JobPreviewProps) {
           <CardHeader>
             <CardTitle>
               <h2 className="text-2xl font-bold">{selectedJob.title || 'No Title'}</h2>
-              <p className="text-lg text-muted-foreground mt-1">{selectedJob.company || 'No Company'}</p>
+              <p className="text-lg text-muted-foreground dark:text-gray-300 mt-1">{selectedJob.company || 'No Company'}</p>
               <JobStatusButton jobId={selectedJob.id} currentStatus={selectedJob.status} />
             </CardTitle>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground dark:text-gray-300">
               {selectedJob.location || 'No Location'} • {selectedJob.status || 'New'}
             </p>
             <Button size="lg" className="mt-4">Apply Now</Button>
@@ -49,7 +49,7 @@ export default function JobPreview({ selectedJob, onBack }: JobPreviewProps) {
           <CardContent className="space-y-6">
             <div>
               <h3 className="text-xl font-semibold mb-2">Job Description</h3>
-              <div className="prose prose-sm max-w-none">
+              <div className="prose prose-sm max-w-none dark:prose-invert">
                 <ReactMarkdown>
                   {selectedJob.description || 'No description available.'}
                 </ReactMarkdown>
@@ -60,7 +60,7 @@ export default function JobPreview({ selectedJob, onBack }: JobPreviewProps) {
               <div>
                 <h3 className="text-xl font-semibold mb-2">Job URL</h3>
                 <a href={selectedJob.url} target="_blank" rel="noopener noreferrer" 
-                   className="text-blue-500 hover:underline">
+                   className="text-blue-500 dark:text-blue-400 hover:underline">
                   View Original Posting
                 </a>
               </div>
