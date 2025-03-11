@@ -14,7 +14,7 @@ import { Toaster } from 'sonner'
 import GoogleAnalytics from '@/components/GoogleAnalytics'
 
 const Header = dynamic(() => import('@/components/Header'), { ssr: false })
-const Sidebar = dynamic(() => import('@/components/Sidebar'), { ssr: false })
+// Sidebar is now included in Header
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -45,7 +45,6 @@ function RootLayoutContent({ children }: { children: React.ReactNode }) {
     // If authenticated, render with layout
     return (
       <div className="flex h-screen overflow-hidden">
-        <Sidebar />
         <div className="flex flex-col flex-1 overflow-hidden">
           <Header onToggleJobList={() => {}} showJobList={false} />
           <main className="flex-1">
@@ -67,7 +66,6 @@ function RootLayoutContent({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar />
       <div className="flex flex-col flex-1 overflow-hidden">
         <Header onToggleJobList={() => {}} showJobList={false} />
         <main className="flex-1">

@@ -32,7 +32,7 @@ export default function Sidebar() {
   return (
     <>
       {/* Toggle button - always visible */}
-      <div className="fixed top-0 left-0 z-50 h-16 flex items-center justify-center">
+      <div className="fixed top-0 left-0 z-50 h-16 flex items-center">
         <Button 
           variant="ghost" 
           size="icon" 
@@ -50,14 +50,11 @@ export default function Sidebar() {
 
       {/* Sidebar content - hidden when collapsed */}
       <div className={cn(
-        "fixed top-0 left-0 h-screen border-r bg-background",
+        "fixed top-16 left-0 h-[calc(100vh-4rem)] border-r bg-background",
         isOpen ? "w-52 opacity-100 visible" : "w-0 opacity-0 invisible",
         "transition-all duration-300 overflow-hidden z-40"
       )}>
-        <div className="h-16 flex items-center px-4 border-b">
-          <h2 className="text-xl font-bold ml-8">Job AI</h2>
-        </div>
-        <ScrollArea className="h-[calc(100vh-4rem)]">
+        <ScrollArea className="h-full">
           <div className="space-y-1 p-2">
             <Button variant="ghost" className="w-full justify-start" asChild>
               <Link href="/">
