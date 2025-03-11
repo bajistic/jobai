@@ -19,7 +19,7 @@ export async function GET() {
         assistants: {
           where: {
             assistantName: {
-              in: [`Composer_${userId}`]
+              in: [`Composer_${userId}`, `JobRanker_${userId}`]
             }
           }
         },

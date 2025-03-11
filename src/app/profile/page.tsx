@@ -2,8 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { useSession, signOut } from 'next-auth/react'
-import { LogOut, Upload, Trash2, Database, Bot } from 'lucide-react'
+import { LogOut, Upload, Trash2, Database, Bot, Pencil, Save, X } from 'lucide-react'
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Card, CardHeader, CardContent } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
 
 export default function ProfilePage() {
@@ -124,211 +129,239 @@ export default function ProfilePage() {
   if (!session) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-md">
-          <p className="text-gray-600">Please sign in to view your profile</p>
-        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-muted-foreground">Please sign in to view your profile</p>
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
   return (
     <ScrollArea className="h-screen">
-      <div className="min-h-screen bg-gray-50 py-12">
-        <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-sm p-8 mb-12">
-          <div className="flex items-center justify-between mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Profile</h1>
-            <div className="flex gap-3">
-              {!isEditing && (
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+      <div className="min-h-screen bg-background py-12">
+        <Card className="max-w-3xl mx-auto shadow-sm mb-12">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <h1 className="text-3xl font-bold">Profile</h1>
+              <div className="flex gap-3">
+                {!isEditing ? (
+                  <Button 
+                    onClick={() => setIsEditing(true)}
+                    variant="default"
+                    className="flex items-center gap-2"
+                  >
+                    <Pencil className="h-4 w-4" />
+                    Edit Profile
+                  </Button>
+                ) : null}
+                <Button 
+                  onClick={handleSignOut} 
+                  variant="destructive"
+                  className="flex items-center gap-2"
                 >
-                  Edit Profile
-                </button>
-              )}
-              <button
-                onClick={handleSignOut}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors flex items-center gap-2"
-              >
-                <LogOut className="h-4 w-4" />
-                Sign Out
-              </button>
-            </div>
-          </div>
-          
-          {isEditing ? (
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Profile Picture
-                  </label>
-                  <input
-                    type="text"
-                    value={profile.image || ''}
-                    onChange={(e) => setProfile({ ...profile, image: e.target.value })}
-                    className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter image URL"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Name
-                  </label>
-                  <input
-                    type="text"
-                    value={profile.name || ''}
-                    onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                    className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter your name"
-                  />
-                </div>
+                  <LogOut className="h-4 w-4" />
+                  Sign Out
+                </Button>
               </div>
-              
-              <div className="space-y-6 border-t pt-6">
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">AI Assistant Configuration</h3>
-                  
-                  {/* Vector Store Section */}
-                  <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Database className="h-5 w-5 text-blue-600" />
-                      <h4 className="font-medium">Vector Store</h4>
-                    </div>
-                    <p className="text-sm text-gray-600 mb-4">
-                      Upload your documents to create a personalized knowledge base
-                    </p>
-                    <div className="flex items-center gap-4">
-                      <label className="cursor-pointer inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:bg-blue-400">
-                        <Upload className="h-4 w-4 mr-2" />
-                        {isUploading ? 'Uploading...' : 'Upload Documents'}
-                        <input
-                          type="file"
-                          className="hidden"
-                          multiple
-                          accept=".pdf,.doc,.docx"
-                          onChange={handleDocumentUpload}
-                          disabled={isUploading}
-                        />
-                      </label>
-                      <span className="text-sm text-gray-500">
-                        {profile.documents.length} documents uploaded
+            </div>
+          </CardHeader>
+
+          <CardContent>
+            {isEditing ? (
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      Profile Picture
+                    </label>
+                    <Input
+                      type="text"
+                      value={profile.image || ''}
+                      onChange={(e) => setProfile({ ...profile, image: e.target.value })}
+                      placeholder="Enter image URL"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      Name
+                    </label>
+                    <Input
+                      type="text"
+                      value={profile.name || ''}
+                      onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                      placeholder="Enter your name"
+                    />
+                  </div>
+                </div>
+
+                <Separator className="my-4" />
+
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-medium mb-4">AI Assistant Configuration</h3>
+
+                    {/* Vector Store Section */}
+                    <Card className="mb-6 bg-muted/40">
+                      <CardContent className="pt-6">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Database className="h-5 w-5 text-primary" />
+                          <h4 className="font-medium">Vector Store</h4>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          Upload your documents to create a personalized knowledge base
+                        </p>
+                        <div className="flex items-center gap-4">
+                          <label className="cursor-pointer">
+                            <Button 
+                              variant="default" 
+                              className="flex items-center gap-2"
+                              disabled={isUploading}
+                            >
+                              <Upload className="h-4 w-4" />
+                              {isUploading ? 'Uploading...' : 'Upload Documents'}
+                            </Button>
+                            <input
+                              type="file"
+                              className="hidden"
+                              multiple
+                              accept=".pdf,.doc,.docx"
+                              onChange={handleDocumentUpload}
+                              disabled={isUploading}
+                            />
+                          </label>
+                          <span className="text-sm text-muted-foreground">
+                            {profile.documents.length} documents uploaded
+                          </span>
+                        </div>
+
+                        {/* Document List */}
+                        <div className="mt-4 space-y-2">
+                          {profile.documents.map((doc: any) => (
+                            <div key={doc.id} className="flex items-center justify-between p-3 bg-card rounded-md border">
+                              <span className="text-sm">{doc.name}</span>
+                              <Button 
+                                type="button"
+                                onClick={() => handleDeleteDocument(doc.id)}
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive hover:text-destructive/90 p-1 h-auto"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Assistant Section */}
+                    <Card className="bg-muted/40">
+                      <CardContent className="pt-6">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Bot className="h-5 w-5 text-primary" />
+                          <h4 className="font-medium">AI Assistant</h4>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          Configure your personal AI assistant for job applications
+                        </p>
+
+                        {/* Job Filter Prompt */}
+                        <div className="space-y-2">
+                          <label className="block text-sm font-medium">
+                            Job Ranker Criteria
+                          </label>
+                          <Textarea
+                            value={profile.jobRankerPrompt || ''}
+                            onChange={(e) => setProfile({ ...profile, jobRankerPrompt: e.target.value })}
+                            placeholder="Enter your custom job ranking criteria..."
+                            rows={5}
+                          />
+                        </div>
+
+                        {/* Job Composer Prompt */}
+                        <div className="space-y-2">
+                          <label className="block text-sm font-medium">
+                            Job Composer Criteria
+                          </label>
+                          <Textarea
+                            value={profile.composerPrompt || ''}
+                            onChange={(e) => setProfile({ ...profile, composerPrompt: e.target.value })}
+                            placeholder="Enter your custom job composing criteria..."
+                            rows={5}
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <Button
+                    type="submit"
+                    disabled={isSaving}
+                    className="flex items-center gap-2"
+                  >
+                    <Save className="h-4 w-4" />
+                    {isSaving ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => setIsEditing(false)}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    <X className="h-4 w-4" />
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            ) : (
+              <div className="space-y-6">
+                <div className="flex items-center space-x-6">
+                  {profile.image ? (
+                    <img
+                      src={profile.image}
+                      alt={profile.name || 'Profile picture'}
+                      className="w-24 h-24 rounded-full object-cover border-2 border-border"
+                    />
+                  ) : (
+                    <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center">
+                      <span className="text-muted-foreground text-2xl">
+                        {profile.name?.[0]?.toUpperCase() || '?'}
                       </span>
                     </div>
-                    
-                    {/* Document List */}
-                    <div className="mt-4 space-y-2">
-                      {profile.documents.map((doc: any) => (
-                        <div key={doc.id} className="flex items-center justify-between p-3 bg-white rounded-md border border-gray-200">
-                          <span className="text-sm text-gray-700">{doc.name}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteDocument(doc.id)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Assistant Section */}
-                  <div className="p-4 bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Bot className="h-5 w-5 text-blue-600" />
-                      <h4 className="font-medium">AI Assistant</h4>
-                    </div>
-                    <p className="text-sm text-gray-600 mb-4">
-                      Configure your personal AI assistant for job applications
-                    </p>
-                    
-                    {/* Job Filter Prompt */}
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Job Ranker Criteria
-                      </label>
-                      <textarea
-                        value={profile.jobRankerPrompt || ''}
-                        onChange={(e) => setProfile({ ...profile, jobRankerPrompt: e.target.value })}
-                        className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="Enter your custom job ranking criteria..."
-                        rows={5}
-                      />
-                    </div>
-
-                    {/* Job Composer Prompt */}
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Job Composer Criteria
-                      </label>
-                      <textarea
-                        value={profile.composerPrompt || ''}
-                        onChange={(e) => setProfile({ ...profile, composerPrompt: e.target.value })}
-                        className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="Enter your custom job composing criteria..."
-                        rows={5}
-                      />
-                    </div>
+                  )}
+                  <div>
+                    <h2 className="text-2xl font-semibold">
+                      {profile.name || 'No name set'}
+                    </h2>
+                    <p className="text-muted-foreground">{profile.email}</p>
                   </div>
                 </div>
-              </div>
-              
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:bg-blue-400"
-                >
-                  {isSaving ? 'Saving...' : 'Save Changes'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsEditing(false)}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          ) : (
-            <div className="space-y-6">
-              <div className="flex items-center space-x-6">
-                {profile.image ? (
-                  <img
-                    src={profile.image}
-                    alt={profile.name || 'Profile picture'}
-                    className="w-24 h-24 rounded-full object-cover border-2 border-gray-200"
-                  />
-                ) : (
-                  <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center">
-                    <span className="text-gray-500 text-2xl">
-                      {profile.name?.[0]?.toUpperCase() || '?'}
-                    </span>
-                  </div>
-                )}
+
+                <Separator className="my-4" />
+
                 <div>
-                  <h2 className="text-2xl font-semibold text-gray-900">
-                    {profile.name || 'No name set'}
-                  </h2>
-                  <p className="text-gray-500">{profile.email}</p>
+                  <h3 className="text-lg font-medium mb-4">Application Documents</h3>
+                  <div className="space-y-2">
+                    {profile.documents.length > 0 ? (
+                      profile.documents.map((doc: any) => (
+                        <div key={doc.id} className="flex items-center p-3 bg-muted/40 rounded-md">
+                          <span className="text-sm">{doc.name}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No documents uploaded yet</p>
+                    )}
+                  </div>
                 </div>
               </div>
-              
-              <div className="border-t pt-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Application Documents</h3>
-                <div className="space-y-2">
-                  {profile.documents.map((doc: any) => (
-                    <div key={doc.id} className="flex items-center p-3 bg-gray-50 rounded-md">
-                      <span className="text-sm text-gray-700">{doc.name}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </ScrollArea>
   )
-} 
+}
