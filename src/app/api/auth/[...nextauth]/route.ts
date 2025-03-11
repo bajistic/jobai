@@ -63,7 +63,7 @@ export const authOptions: AuthOptions = {
   pages: {
     signIn: "/auth/signin",
   },
-  debug: true,
+  debug: process.env.NODE_ENV === 'development',
   callbacks: {
     async jwt({ token, user }: { token: JWT, user: User }) {
       if (user) {

@@ -38,8 +38,10 @@ export default function ProfilePage() {
         setProfile({
           ...data,
           documents: data.documents || [],
-          jobRankerPrompt: data.assistants[0].systemPrompt,
-          composerPrompt: data.assistants[1].systemPrompt
+          jobRankerPrompt: data.jobRankerPrompt || '',
+          composerPrompt: data.assistants?.length > 0 ? 
+            (data.assistants.find((a: any) => a.assistantName.startsWith('Composer_'))?.systemPrompt || '') : 
+            ''
         })
       }
     } catch (error) {
