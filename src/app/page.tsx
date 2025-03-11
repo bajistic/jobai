@@ -27,7 +27,7 @@ export default function HomePage() {
   // If the user is authenticated, show the dashboard
   return (
     <div className="flex flex-1 overflow-hidden">
-      <div className={`w-full lg:w-1/3 border-r ${selectedJobId ? 'hidden lg:block' : 'block'}`}>
+      <div className={`w-full lg:w-1/3 border-r overflow-hidden ${selectedJobId ? 'hidden lg:block' : 'block'}`}>
         <JobList 
           jobs={jobs} 
           loading={loading}
@@ -36,7 +36,7 @@ export default function HomePage() {
           totalJobs={totalJobs}
         />
       </div>
-      <div className={`flex-1 ${selectedJobId ? 'block' : 'hidden lg:block'}`}>
+      <div className={`w-full lg:flex-1 overflow-hidden ${selectedJobId ? 'block' : 'hidden lg:block'}`}>
         <JobPreview 
           selectedJob={jobs.find(job => job.id === selectedJobId) || null} 
           onBack={() => setSelectedJobId(null)}

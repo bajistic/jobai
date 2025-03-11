@@ -46,38 +46,40 @@ export default function JobList({ jobs, loading, onSelectJob, selectedJobId, tot
 
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      <ScrollArea className="h-[calc(100vh-4rem)]">
-        <div className="p-4 space-y-4">
-          {loading ? (
-          <div className="p-4 space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <Card key={i} className="cursor-pointer">
-                <CardHeader className="pb-2">
-                  <Skeleton className="h-4 w-full" />
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-3 w-full mb-2" />
-                  <Skeleton className="h-3 w-full" />
-                </CardContent>
-              </Card>
-            ))}
+      <div className="h-[calc(100vh-4rem)] w-full overflow-hidden">
+        <ScrollArea className="h-full w-full">
+          <div className="p-4 space-y-4 w-full">
+            {loading ? (
+              <div className="space-y-4">
+                {[...Array(5)].map((_, i) => (
+                  <Card key={i} className="cursor-pointer">
+                    <CardHeader className="pb-2">
+                      <Skeleton className="h-4 w-full" />
+                    </CardHeader>
+                    <CardContent>
+                      <Skeleton className="h-3 w-full mb-2" />
+                      <Skeleton className="h-3 w-full" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <>
+                {jobs.map(job => (
+                  <JobCard
+                    key={job.id}
+                    job={job}
+                    isSelected={selectedJobId === job.id}
+                    onSelect={() => onSelectJob(job)}
+                    onUpdate={() => {}}
+                  />
+                ))}
+                <JobPagination />
+              </>
+            )}
           </div>
-        ) : (
-          <>
-            {jobs.map(job => (
-              <JobCard
-                key={job.id}
-                job={job}
-                isSelected={selectedJobId === job.id}
-                onSelect={() => onSelectJob(job)}
-                onUpdate={() => {}}
-              />
-            ))}
-            <JobPagination />
-          </>
-        )}
+        </ScrollArea>
       </div>
-    </ScrollArea>
     </Suspense>
   )
-} 
+}

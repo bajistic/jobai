@@ -67,7 +67,7 @@ export default async function JobDetailsPage(
           </div>
         </div>
 
-        <div className="h-full">
+        <div>
           <CoverLetterSection job={job as unknown as Job} />
         </div>
       </div>

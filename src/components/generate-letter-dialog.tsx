@@ -7,6 +7,7 @@ import { Loader2, FileText, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { Job } from '@/lib/types/shared';
 import { Progress } from "@/components/ui/progress";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface GenerateLetterDialogProps {
   open: boolean;
@@ -115,18 +116,19 @@ export function GenerateLetterDialog({ open, onOpenChange, job }: GenerateLetter
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-4xl max-h-[90vh] p-0">
+        <DialogHeader className="px-6 pt-6 pb-2">
           <DialogTitle>Cover Letter</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
+        
+        <div className="px-6 pb-2">
           {isGenerating && (
             <div className="space-y-2">
               <Progress value={progress} />
               <p className="text-sm text-muted-foreground text-center">{progressStatus}</p>
             </div>
           )}
-          <div className="flex justify-end">
+          <div className="flex justify-end py-2">
             <Button
               onClick={handleGenerate}
               disabled={isGenerating || !job}
@@ -144,7 +146,9 @@ export function GenerateLetterDialog({ open, onOpenChange, job }: GenerateLetter
               )}
             </Button>
           </div>
+        </div>
 
+        <ScrollArea className="flex-1 max-h-[calc(90vh-10rem)] px-6 pb-6">
           {isLoading ? (
             <div className="text-center py-8">
               <Loader2 className="h-8 w-8 animate-spin mx-auto" />
@@ -167,17 +171,19 @@ export function GenerateLetterDialog({ open, onOpenChange, job }: GenerateLetter
                   <p key={index}>{paragraph}</p>
                 ))}
               </div>
+              <div className="mt-4">
                 <span className="text-sm text-muted-foreground">
                   {letter.created_at ? new Date(letter.created_at).toLocaleString() : 'Date not available'}
                 </span>
+              </div>
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
               No cover letter generated yet
             </div>
           )}
-        </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );
-} 
+}
