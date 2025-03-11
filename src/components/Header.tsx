@@ -38,13 +38,9 @@ export default function Header({ onToggleJobList, showJobList, selectedJob }: He
             )}
           </div>
           <div className="flex items-center space-x-2">
-            <ThemeToggle className="mr-2" />
             {(!selectedJob || showJobList || window.innerWidth >= 1024) && (
               <JobFilter />
             )}
-            <Button variant="ghost" size="icon" className="lg:hidden" onClick={onToggleJobList}>
-              {showJobList ? <FileText className="h-5 w-5" /> : <List className="h-5 w-5" />}
-            </Button>
           </div>
         </div>
       </header>
