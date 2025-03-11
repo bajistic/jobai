@@ -33,7 +33,7 @@ export default async function JobDetailsPage(
         <JobActions job={{...job, id: Number(job.id)}} />
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4">
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-semibold mb-4">Job Description</h2>
@@ -67,7 +67,7 @@ export default async function JobDetailsPage(
           </div>
         </div>
 
-        <div>
+        <div className="h-full">
           <CoverLetterSection job={job as unknown as Job} />
         </div>
       </div>
