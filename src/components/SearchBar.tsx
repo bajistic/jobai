@@ -39,7 +39,7 @@ export function SearchBar() {
         type="search"
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
-        className="pl-8 w-full"
+        className="pl-8 w-full h-10"
         placeholder="Search jobs, companies, locations..."
         aria-label="Search jobs"
       />

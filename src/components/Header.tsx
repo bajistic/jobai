@@ -20,8 +20,8 @@ export default function Header({ onToggleJobList, showJobList, selectedJob }: He
     <>
       <Sidebar />
       <header className="border-b border-ui bg-background h-16">
-        <div className="flex space-y-2 p-4 py-3 lg:flex-row lg:items-center justify-between lg:space-y-0">
-          <div className="flex items-center space-x-4 pl-10">
+        <div className="flex p-3 lg:flex-row lg:items-center justify-between">
+          <div className="flex items-center space-x-3 pl-10 flex-1">
             {selectedJob && (
               <Button 
                 variant="ghost" 
@@ -34,10 +34,12 @@ export default function Header({ onToggleJobList, showJobList, selectedJob }: He
               </Button>
             )}
             {(!selectedJob || showJobList || window.innerWidth >= 1024) && (
-              <SearchBar />
+              <div className="flex-1 max-w-3xl">
+                <SearchBar />
+              </div>
             )}
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center ml-2">
             {(!selectedJob || showJobList || window.innerWidth >= 1024) && (
               <JobFilter />
             )}

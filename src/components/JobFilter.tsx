@@ -20,11 +20,13 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Filter } from 'lucide-react'
+import { useIsMobile } from '@/hooks/use-mobile'
 
 function JobFilterContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { fetchJobs } = useJobs()
+  const isMobile = useIsMobile()
 
   const [filters, setFilters] = useState<JobFilterType>({
     location: searchParams.get('location') || '',
@@ -79,9 +81,13 @@ function JobFilterContent() {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Filter className="h-4 w-4 mr-2" />
-          Filter
+        <Button 
+          variant="outline" 
+          className="h-10 px-4"
+          aria-label="Filter jobs"
+        >
+          <Filter className="h-4 w-4" />
+          {!isMobile && <span className="ml-2">Filter</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-80">
