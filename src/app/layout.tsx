@@ -14,6 +14,7 @@ import { Toaster } from 'sonner'
 import GoogleAnalytics from '@/components/GoogleAnalytics'
 
 const Header = dynamic(() => import('@/components/Header'), { ssr: false })
+const LoadingDashboard = dynamic(() => import('@/components/LoadingDashboard'), { ssr: false })
 // Sidebar is now included in Header
 
 const inter = Inter({ subsets: ["latin"] });
@@ -34,7 +35,7 @@ function RootLayoutContent({ children }: { children: React.ReactNode }) {
   if (pathname === '/') {
     // If still loading session, show loading indicator
     if (status === 'loading') {
-      return <div>Loading...</div>
+      return <LoadingDashboard />
     }
     
     // If no session but on homepage, let the page component handle it (landing page)
@@ -61,7 +62,7 @@ function RootLayoutContent({ children }: { children: React.ReactNode }) {
   }
 
   if (status === 'loading') {
-    return <div>Loading...</div>
+    return <LoadingDashboard />
   }
 
   return (
@@ -86,7 +87,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <JobProvider>
           <Providers>
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense fallback={<LoadingDashboard />}>
               <ThemeProvider
                 attribute="class"
                 defaultTheme="system"
