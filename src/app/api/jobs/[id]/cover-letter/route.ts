@@ -4,7 +4,8 @@ import { prisma } from '@/lib/prisma';
 import { Job } from '@/lib/types/shared';
 import { auth } from '@/lib/auth';
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const jobId = Number(params.id);
   const session = await auth();
   const userId = session?.user?.id;
@@ -49,9 +50,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
 export async function GET(
   _req: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const { params } = context;
+  const params = await context.params;
   const jobId = Number(params.id);
   try {
     const letter = await prisma.cover_letters.findFirst({

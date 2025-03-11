@@ -4,10 +4,8 @@ import { prisma } from '@/lib/prisma';
 import { Job } from '@/lib/types/shared';
 import { auth } from '@/lib/auth';
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {

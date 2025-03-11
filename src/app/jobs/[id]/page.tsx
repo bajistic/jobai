@@ -6,11 +6,12 @@ import { formatDate } from '@/lib/utils'
 import ReactMarkdown from 'react-markdown'
 import { Job } from '@/lib/types/shared'
 
-export default async function JobDetailsPage({
-  params
-}: {
-  params: { id: string }
-}) {
+export default async function JobDetailsPage(
+  props: {
+    params: Promise<{ id: string }>
+  }
+) {
+  const params = await props.params;
   const job = await prisma.jobs.findUnique({
     where: { id: parseInt(params.id) },
     include: { cover_letters: true }

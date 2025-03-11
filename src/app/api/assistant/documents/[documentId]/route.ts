@@ -2,10 +2,8 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
-export async function DELETE(
-  request: Request,
-  { params }: { params: { documentId: string } }
-) {
+export async function DELETE(request: Request, props: { params: Promise<{ documentId: string }> }) {
+  const params = await props.params;
   try {
     const session = await auth();
     const userId = session?.user?.id;
