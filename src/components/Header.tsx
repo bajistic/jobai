@@ -19,7 +19,7 @@ export default function Header({ onToggleJobList, showJobList, selectedJob }: He
   return (
     <>
       <Sidebar />
-      <header className="border-b border-ui bg-background h-16">
+      <header className="border-b bg-background h-16">
         <div className="flex p-3 lg:flex-row lg:items-center justify-between">
           <div className="flex items-center space-x-3 pl-10 flex-1">
             {selectedJob && (
