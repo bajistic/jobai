@@ -19,7 +19,9 @@ import {
   ListFilter,
   User,
   X,
-  Download
+  Download,
+  UserPlus,
+  ShieldCheck
 } from 'lucide-react'
 import Link from "next/link"
 import { useSession } from 'next-auth/react'
@@ -27,6 +29,7 @@ import { useSession } from 'next-auth/react'
 export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false)
   const [jobsOpen, setJobsOpen] = useState(true)
+  const [adminOpen, setAdminOpen] = useState(false)
   const { data: session } = useSession()
 
   return (
@@ -104,12 +107,35 @@ export default function Sidebar() {
             </Button>
 
             {session?.user?.email === "bbayarbileg@gmail.com" && (
-              <Button variant="ghost" className="w-full justify-start" asChild>
-                <Link href="/scrape">
-                  <Download className="h-4 w-4 mr-2" />
-                  <span>Scrape Jobs</span>
-                </Link>
-              </Button>
+              <>
+                <Button variant="ghost" className="w-full justify-start" asChild>
+                  <Link href="/scrape">
+                    <Download className="h-4 w-4 mr-2" />
+                    <span>Scrape Jobs</span>
+                  </Link>
+                </Button>
+                
+                <Collapsible open={adminOpen} onOpenChange={setAdminOpen} className="mt-2">
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" className="w-full justify-start">
+                      <ShieldCheck className="h-4 w-4 mr-2" />
+                      <span>Admin</span>
+                      <ChevronDown className={cn(
+                        "h-4 w-4 ml-auto transition-transform",
+                        adminOpen && "rotate-180"
+                      )} />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-1 pl-6">
+                    <Button variant="ghost" className="w-full justify-start" asChild>
+                      <Link href="/admin/beta-requests">
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        <span>Beta Requests</span>
+                      </Link>
+                    </Button>
+                  </CollapsibleContent>
+                </Collapsible>
+              </>
             )}
 
             <div className="mt-auto pt-4 border-t">
