@@ -144,6 +144,41 @@ export class OpenAIService {
       throw error;
     }
   }
+  
+  public async createJobRankingAssistant(userId: string): Promise<Assistant> {
+    try {
+      // Create a new assistant for job ranking
+      const assistant = await this.openai.beta.assistants.create({
+        name: `JobRanker_${userId}`,
+        description: "Assistant for ranking job listings",
+        model: "gpt-4o-mini",
+        instructions: `Analysiere Stellenanzeigen und bewerte sie basierend auf den Benutzerkriterien. 
+        Gib eine Bewertung als "bingo", "good", "okay" oder "bad" zurück, sowie den Schweizer Kanton.`,
+      });
+  
+      console.log("Created job ranking assistant", assistant);
+  
+      // Store in database
+      await prisma.userAssistant.create({
+        data: {
+          userId,
+          assistantId: assistant.id,
+          assistantName: `JobRanker_${userId}`,
+          systemPrompt: assistant.instructions || '',
+        },
+      });
+  
+      return {
+        id: assistant.id,
+        name: assistant.name,
+        description: assistant.description ?? "",
+        instructions: assistant.instructions ?? "",
+      };
+    } catch (error) {
+      console.error('Error creating job ranking assistant:', error);
+      throw error;
+    }
+  }
 
   public async createComposerAssistant(userId: string, vectorStoreId: string, fileIds?: string[]): Promise<Assistant> {
     // 1) Retrieve or create the user's vector store
