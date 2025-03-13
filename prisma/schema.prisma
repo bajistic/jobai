@@ -126,6 +126,9 @@ model jobs {
   starred         String?
   address         String?
   applied_at      DateTime?         @db.Timestamptz(6)
+  scores          Json?             // New field for storing criteria scores
+  tags            String[]          @default([]) // New field for descriptive labels
+  last_analyzed   DateTime?         // When the job was last analyzed
   cover_letters   cover_letters[]
   job_preferences job_preferences[]
 }

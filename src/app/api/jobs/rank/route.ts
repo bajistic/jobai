@@ -65,10 +65,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Job not found" }, { status: 404 });
     }
 
-    // Call your custom rankJob method on the OpenAIService
-    // This method is an example placeholder. Adjust to match your actual code.
+    // Use the hybrid approach that can use either optimized or traditional ranking
     const openAIService = OpenAIService.getInstance();
-    const { ranking, canton } = await openAIService.rankJob(
+    const { ranking, canton } = await openAIService.rankJobHybrid(
       job as unknown as Job,
       userId
     );
