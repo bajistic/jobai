@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import {
   Dialog,
   DialogContent,
@@ -14,13 +15,14 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { ChevronLeft, MoreVertical, BookmarkIcon, EyeOff, FileText, PenSquare } from 'lucide-react'
+import { ChevronLeft, ChevronRight, MoreVertical, BookmarkIcon, EyeOff, FileText, PenSquare, Menu } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { Job } from "@/lib/types/shared"
 import { JobStatusButton } from "./JobStatusButton"
 import { GenerateLetterDialog } from './generate-letter-dialog'
 import { useRouter } from 'next/navigation'
 import { trackEvent, AnalyticsEvents } from '@/lib/analytics'
+import { useJobs } from '@/contexts/JobContext'
 
 interface JobPreviewProps {
   selectedJob: Job | null;
@@ -29,11 +31,42 @@ interface JobPreviewProps {
 
 export default function JobPreview({ selectedJob, onBack }: JobPreviewProps) {
   const router = useRouter();
+  const { jobs, setSelectedJobId } = useJobs();
   const [showNotesDialog, setShowNotesDialog] = useState(false);
   const [showLetterDialog, setShowLetterDialog] = useState(false);
   const [notes, setNotes] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  
+  // Find current job index and calculate previous and next indices
+  const currentIndex = selectedJob ? jobs.findIndex(job => job.id === selectedJob.id) : -1;
+  const hasPrevJob = currentIndex > 0;
+  const hasNextJob = currentIndex < jobs.length - 1 && currentIndex !== -1;
+  
+  const handlePrevJob = () => {
+    if (hasPrevJob && currentIndex > 0) {
+      const prevJob = jobs[currentIndex - 1];
+      setSelectedJobId(prevJob.id);
+      trackEvent(AnalyticsEvents.BUTTON_CLICKED, {
+        component: 'JobPreview',
+        action: 'navigate_previous',
+        job_id: prevJob.id.toString(),
+      });
+    }
+  };
+  
+  const handleNextJob = () => {
+    if (hasNextJob && currentIndex < jobs.length - 1) {
+      const nextJob = jobs[currentIndex + 1];
+      setSelectedJobId(nextJob.id);
+      trackEvent(AnalyticsEvents.BUTTON_CLICKED, {
+        component: 'JobPreview',
+        action: 'navigate_next',
+        job_id: nextJob.id.toString(),
+      });
+    }
+  };
 
   if (!selectedJob) {
     return (
@@ -126,15 +159,8 @@ export default function JobPreview({ selectedJob, onBack }: JobPreviewProps) {
   return (
     <>
       <ScrollArea className="h-[calc(100vh-4rem)]">
-        <div className="p-6 pb-20">
-          <Button 
-            variant="ghost" 
-            className="lg:hidden mb-4" 
-            onClick={onBack}
-          >
-            <ChevronLeft className="h-4 w-4 mr-2" />
-            Back to list
-          </Button>
+        <div className="p-6 pb-24">
+          {/* Hide mobile navigation from top since we'll add it to bottom bar */}
           <Card>
             <CardHeader>
               <div className="flex justify-between items-start">
@@ -240,47 +266,121 @@ export default function JobPreview({ selectedJob, onBack }: JobPreviewProps) {
       />
     </ScrollArea>
     
-    {/* Mobile action buttons */}
-    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t p-3 flex justify-around">
-      <Button 
-        variant={selectedJob.isStarred ? "secondary" : "outline"} 
-        size="sm"
-        className="flex-1 mx-1"
-        onClick={() => handleMenuAction('star')}
-      >
-        <BookmarkIcon className="h-4 w-4 mr-2" />
-        {selectedJob.isStarred ? 'Starred' : 'Star'}
-      </Button>
-      
-      <Button 
-        variant="outline" 
-        size="sm"
-        className="flex-1 mx-1"
-        onClick={() => handleMenuAction('notes')}
-      >
-        <PenSquare className="h-4 w-4 mr-2" />
-        Notes
-      </Button>
-      
-      <Button 
-        variant={selectedJob.cover_letter?.length ? "secondary" : "outline"}
-        size="sm"
-        className="flex-1 mx-1"
-        onClick={() => setShowLetterDialog(true)}
-      >
-        <FileText className="h-4 w-4 mr-2" />
-        Letter
-      </Button>
-      
-      <Button 
-        variant={selectedJob.isHidden ? "secondary" : "outline"}
-        size="sm"
-        className="flex-1 mx-1"
-        onClick={() => handleMenuAction('hide')}
-      >
-        <EyeOff className="h-4 w-4 mr-2" />
-        {selectedJob.isHidden ? 'Hidden' : 'Hide'}
-      </Button>
+    {/* Mobile navigation and actions */}
+    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t px-2 py-3 flex items-center">
+      <div className="flex w-full justify-between items-center">
+        {/* Back button */}
+        <Button 
+          variant="ghost" 
+          size="sm"
+          onClick={onBack}
+          className="mr-1"
+        >
+          <ChevronLeft className="h-4 w-4 mr-1" />
+          Back
+        </Button>
+        
+        {/* Job navigation */}
+        <div className="flex items-center justify-center flex-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handlePrevJob}
+            disabled={!hasPrevJob}
+            aria-label="Previous job"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          
+          <span className="text-sm text-muted-foreground mx-2">
+            {currentIndex + 1} / {jobs.length}
+          </span>
+          
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleNextJob}
+            disabled={!hasNextJob}
+            aria-label="Next job"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </Button>
+        </div>
+        
+        {/* Collapsible actions menu */}
+        <Collapsible 
+          open={isMenuOpen} 
+          onOpenChange={setIsMenuOpen}
+          className="relative"
+        >
+          <CollapsibleTrigger asChild>
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="ml-1"
+            >
+              <Menu className="h-4 w-4 mr-1" />
+              Actions
+            </Button>
+          </CollapsibleTrigger>
+          
+          <CollapsibleContent className="absolute bottom-[calc(100%+10px)] right-0 p-2 bg-background border rounded-md shadow-md min-w-[200px]">
+            <div className="flex flex-col space-y-2">
+              <Button 
+                variant={selectedJob.isStarred ? "secondary" : "outline"} 
+                size="sm"
+                className="justify-start"
+                onClick={() => {
+                  handleMenuAction('star');
+                  setIsMenuOpen(false);
+                }}
+              >
+                <BookmarkIcon className="h-4 w-4 mr-2" />
+                {selectedJob.isStarred ? 'Unstar' : 'Star'}
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="justify-start"
+                onClick={() => {
+                  handleMenuAction('notes');
+                  setIsMenuOpen(false);
+                }}
+              >
+                <PenSquare className="h-4 w-4 mr-2" />
+                Notes
+              </Button>
+              
+              <Button 
+                variant={selectedJob.cover_letter?.length ? "secondary" : "outline"}
+                size="sm"
+                className="justify-start"
+                onClick={() => {
+                  setShowLetterDialog(true);
+                  setIsMenuOpen(false);
+                }}
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                {selectedJob.cover_letter?.length ? 'View Letter' : 'Generate Letter'}
+              </Button>
+              
+              <Button 
+                variant={selectedJob.isHidden ? "secondary" : "outline"}
+                size="sm"
+                className="justify-start"
+                onClick={() => {
+                  handleMenuAction('hide');
+                  setIsMenuOpen(false);
+                }}
+              >
+                <EyeOff className="h-4 w-4 mr-2" />
+                {selectedJob.isHidden ? 'Unhide' : 'Hide'}
+              </Button>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      </div>
     </div>
     </>
   )
