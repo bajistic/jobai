@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
@@ -158,7 +157,7 @@ export default function JobPreview({ selectedJob, onBack }: JobPreviewProps) {
 
   return (
     <>
-      <ScrollArea className="h-[calc(100vh-4rem)]">
+      <div className="h-[calc(100vh-4rem)] overflow-y-auto pb-20" style={{WebkitOverflowScrolling: "touch"}}>
         <div className="p-6 pb-24">
           {/* Hide mobile navigation from top since we'll add it to bottom bar */}
           <Card>
@@ -264,7 +263,7 @@ export default function JobPreview({ selectedJob, onBack }: JobPreviewProps) {
         onOpenChange={setShowLetterDialog}
         job={selectedJob}
       />
-    </ScrollArea>
+    </div>
     
     {/* Mobile navigation and actions */}
     <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t px-2 py-3 flex items-center">

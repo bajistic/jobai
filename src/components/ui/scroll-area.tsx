@@ -5,7 +5,27 @@ import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area"
 
 import { cn } from "@/lib/utils"
 
+// Native ScrollArea that uses browser's native scrolling
+// This helps with iOS Safari behavior where scrolling hides the toolbar
 const ScrollArea = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, children, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "h-full overflow-y-auto -webkit-overflow-scrolling-touch overscroll-contain", 
+      className
+    )}
+    {...props}
+  >
+    {children}
+  </div>
+))
+ScrollArea.displayName = "ScrollArea"
+
+// Keep the original Radix ScrollArea available if needed
+const RadixScrollArea = React.forwardRef<
   React.ElementRef<typeof ScrollAreaPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.Root>
 >(({ className, children, ...props }, ref) => (
@@ -21,7 +41,7 @@ const ScrollArea = React.forwardRef<
     <ScrollAreaPrimitive.Corner />
   </ScrollAreaPrimitive.Root>
 ))
-ScrollArea.displayName = ScrollAreaPrimitive.Root.displayName
+RadixScrollArea.displayName = ScrollAreaPrimitive.Root.displayName
 
 const ScrollBar = React.forwardRef<
   React.ElementRef<typeof ScrollAreaPrimitive.ScrollAreaScrollbar>,
@@ -45,4 +65,4 @@ const ScrollBar = React.forwardRef<
 ))
 ScrollBar.displayName = ScrollAreaPrimitive.ScrollAreaScrollbar.displayName
 
-export { ScrollArea, ScrollBar }
+export { ScrollArea, RadixScrollArea, ScrollBar }

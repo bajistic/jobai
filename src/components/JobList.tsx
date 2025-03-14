@@ -2,7 +2,6 @@
 
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useEffect, Suspense } from 'react'
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Job } from '@/lib/types/shared'
@@ -46,8 +45,7 @@ export default function JobList({ jobs, loading, onSelectJob, selectedJobId, tot
 
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      <div className="h-[calc(100vh-4rem)] w-full overflow-hidden">
-        <ScrollArea className="h-full w-full">
+      <div className="h-[calc(100vh-4rem)] w-full overflow-y-auto" style={{WebkitOverflowScrolling: "touch"}}>
           <div className="p-4 space-y-4 w-full">
             {loading ? (
               <div className="space-y-4">
@@ -65,20 +63,23 @@ export default function JobList({ jobs, loading, onSelectJob, selectedJobId, tot
               </div>
             ) : (
               <>
-                {jobs.map(job => (
-                  <JobCard
-                    key={job.id}
-                    job={job}
-                    isSelected={selectedJobId === job.id}
-                    onSelect={() => onSelectJob(job)}
-                    onUpdate={() => {}}
-                  />
-                ))}
-                <JobPagination />
+                <div className="space-y-4 pb-20">
+                  {jobs.map(job => (
+                    <JobCard
+                      key={job.id}
+                      job={job}
+                      isSelected={selectedJobId === job.id}
+                      onSelect={() => onSelectJob(job)}
+                      onUpdate={() => {}}
+                    />
+                  ))}
+                </div>
+                <div className="mt-4 pb-16">
+                  <JobPagination />
+                </div>
               </>
             )}
           </div>
-        </ScrollArea>
       </div>
     </Suspense>
   )

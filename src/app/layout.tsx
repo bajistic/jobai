@@ -45,10 +45,10 @@ function RootLayoutContent({ children }: { children: React.ReactNode }) {
     
     // If authenticated, render with layout
     return (
-      <div className="flex h-screen overflow-hidden">
-        <div className="flex flex-col flex-1 overflow-hidden">
+      <div className="flex h-screen w-screen overflow-hidden">
+        <div className="flex flex-col w-full h-full overflow-hidden">
           <Header onToggleJobList={() => {}} showJobList={false} />
-          <main className="flex-1">
+          <main className="flex-1 overflow-hidden">
             {children}
           </main>
         </div>
@@ -66,10 +66,10 @@ function RootLayoutContent({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <div className="flex flex-col flex-1 overflow-hidden">
+    <div className="flex h-screen w-screen overflow-hidden">
+      <div className="flex flex-col w-full h-full overflow-hidden">
         <Header onToggleJobList={() => {}} showJobList={false} />
-        <main className="flex-1">
+        <main className="flex-1 overflow-hidden">
           {children}
         </main>
       </div>
@@ -84,6 +84,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+      </head>
       <body className={inter.className}>
         <JobProvider>
           <Providers>

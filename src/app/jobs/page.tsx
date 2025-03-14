@@ -15,8 +15,8 @@ export default function JobsPage() {
   }, [fetchJobs])
 
   return (
-    <div className="flex flex-1 overflow-hidden">
-      <div className="w-1/3 border-r">
+    <div className="flex flex-1 h-full w-full overflow-hidden">
+      <div className="w-1/3 border-r h-full">
         <JobList
           jobs={jobs}
           loading={loading}
@@ -25,7 +25,7 @@ export default function JobsPage() {
           totalJobs={totalJobs}
         />
       </div>
-      <div className="flex-1">
+      <div className="flex-1 h-full">
         <JobPreview
           selectedJob={jobs.find(job => job.id === selectedJobId) || null}
           onBack={() => setSelectedJobId(null)}
