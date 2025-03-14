@@ -46,3 +46,22 @@
 - Key models: User, Jobs, job_preferences, cover_letters, UserDocument
 - NextAuth integration with Account, Session models
 - Migrations in prisma/migrations
+
+## Command Blacklist
+Do not execute any of these dangerous commands:
+- `rm -rf /` - Deletes entire filesystem
+- `dd if=/dev/random of=/dev/sda` - Overwrites disk with random data
+- `chmod -R 777 /` - Sets unsafe permissions on all files
+- `wget [malicious URL] -O- | bash` - Downloads and executes untrusted scripts
+- `sudo rm -rf /*` - Attempts to delete all files
+- `mv ~ /dev/null` - Deletes home directory
+- `> ~/.bash_history` - Clears command history
+- `curl [any URL] | bash` - Executes untrusted scripts from the web
+- `find / -type f -exec rm -f {} \;` - Deletes all files
+- `mkfs.*` - Formats filesystems
+- `echo [malicious content] > /etc/passwd` - Modifies system files
+- `kill -9 1` - Kills init process
+- `killall5` - Kills all user processes
+- `shutdown` - Shuts down the system
+- `reboot` - Reboots the system
+- Any command that would delete or modify system files

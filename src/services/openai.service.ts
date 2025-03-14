@@ -7,6 +7,9 @@ import { zodResponseFormat } from "openai/helpers/zod";
 import { GoogleDocsService } from './google-docs.service';
 import { prisma } from '@/lib/prisma';
 
+// Feature flag for using the new job filtering approach
+export const USE_OPTIMIZED_JOB_FILTERING = process.env.USE_OPTIMIZED_JOB_FILTERING === 'true';
+
 interface Assistant {
   id: string;
   name: string;
@@ -20,6 +23,36 @@ interface JobRanking {
 
 const jobRankingSchema = z.object({
   ranking: z.string(),
+  canton: z.string(),
+});
+
+interface JobScore {
+  entryLevel: number;
+  requiresDegree: number;
+  requiresExperience: number;
+  salesRole: number;
+  techRole: number;
+  designRole: number;
+  customerServiceRole: number;
+  officeSupportRole: number;
+  financialRole: number;
+  healthcareRole: number;
+  skillMatch: number;
+  remoteWork: number;
+  partTime: number;
+  salary: number;
+  [key: string]: number; // Allow custom criteria
+}
+
+interface JobAnalysis {
+  scores: JobScore;
+  tags: string[];
+  canton: string;
+}
+
+const jobAnalysisSchema = z.object({
+  scores: z.record(z.number()),
+  tags: z.array(z.string()),
   canton: z.string(),
 });
 
@@ -280,8 +313,10 @@ export class OpenAIService {
     onProgress?: (update: ProgressUpdate) => void,
     notes?: string
   ): Promise<{ content: string; docs_url: string }> {
+    console.log(`[CoverLetter] Starting generation for userId: ${userId}, jobId: ${job.id}`);
     try {
       // Get user's assistant
+      console.log(`[CoverLetter] Looking up assistant for user: ${userId}`);
       const assistant = await prisma.userAssistant.findFirst({
         where: {
           userId,
@@ -289,36 +324,58 @@ export class OpenAIService {
         }
       });
 
+      console.log(`[CoverLetter] Assistant lookup result:`, JSON.stringify(assistant));
       if (!assistant) {
+        console.error(`[CoverLetter] No assistant found for user ${userId}`);
         throw new Error('No cover letter assistant found for user');
       }
 
+      console.log(`[CoverLetter] Using assistant ID: ${assistant.assistantId}`);
       onProgress?.({ progress: 20, status: 'Creating thread...' });
+      console.log(`[CoverLetter] Creating OpenAI thread`);
       const thread = await this.openai.beta.threads.create();
+      console.log(`[CoverLetter] Thread created with ID: ${thread.id}`);
 
       onProgress?.({ progress: 40, status: 'Adding message to thread...' });
+      console.log(`[CoverLetter] Adding job description to thread`);
       await this.openai.beta.threads.messages.create(thread.id, {
         role: "user",
         content: `Inserat: ${job.description}\nWichtige Anmerkungen: ${notes}`
       });
+      console.log(`[CoverLetter] Message added to thread`);
 
       onProgress?.({ progress: 50, status: 'Starting assistant run...' });
+      console.log(`[CoverLetter] Starting run with assistant ID: ${assistant.assistantId}`);
       const run = await this.openai.beta.threads.runs.create(thread.id, {
         assistant_id: assistant.assistantId,
       });
+      console.log(`[CoverLetter] Run created with ID: ${run.id}`);
 
       onProgress?.({ progress: 60, status: 'Waiting for completion...' });
+      console.log(`[CoverLetter] Waiting for run completion`);
       const runStatus = await this.waitForCompletion(thread.id, run.id);
+      console.log(`[CoverLetter] Run completed with status: ${runStatus.status}`);
 
       if (runStatus.status !== 'completed') {
+        console.error(`[CoverLetter] Run failed with status: ${runStatus.status}`);
         throw new Error('Generation timeout or failed');
       }
 
       onProgress?.({ progress: 70, status: 'Retrieving response...' });
+      console.log(`[CoverLetter] Retrieving messages from thread`);
       const messages = await this.openai.beta.threads.messages.list(thread.id);
+      console.log(`[CoverLetter] Retrieved ${messages.data.length} messages`);
+      
+      if (messages.data.length === 0) {
+        console.error(`[CoverLetter] No messages found in thread`);
+        throw new Error('No messages found in thread');
+      }
+      
       const content = messages.data[0].content[0];
+      console.log(`[CoverLetter] First message content type: ${content.type}`);
 
       if (content.type !== 'text') {
+        console.error(`[CoverLetter] Unexpected content type: ${content.type}`);
         throw new Error('Unexpected response type');
       }
 
@@ -326,15 +383,20 @@ export class OpenAIService {
       const cleanedText = content.text.value
         .replace(/【.*?】/g, '') // Remove file reference indicators
         .replace(/ß/g, 'ss');   // Replace 'ß' with 'ss'
+      
+      console.log(`[CoverLetter] Cleaned text length: ${cleanedText.length}`);
 
       onProgress?.({ progress: 90, status: 'Creating Google Doc...' });
+      console.log(`[CoverLetter] Creating Google Doc`);
       const googleDocsService = GoogleDocsService.getInstance();
       const docs_url = await googleDocsService.createCoverLetterDoc(cleanedText, job);
+      console.log(`[CoverLetter] Google Doc created with URL: ${docs_url}`);
 
       onProgress?.({ progress: 100, status: 'Cover letter generation completed successfully' });
+      console.log(`[CoverLetter] Generation completed successfully`);
       return { content: cleanedText, docs_url };
     } catch (error) {
-      console.error('Cover letter generation failed:', error);
+      console.error(`[CoverLetter] Generation failed:`, error);
       throw error;
     }
   }
@@ -516,49 +578,499 @@ ${job.description || 'Keine Beschreibung verfügbar'}
 
   private async waitForCompletion(threadId: string, runId: string) {
     let attempts = 0;
+    console.log(`[OpenAI] Retrieving initial run status for run ${runId} in thread ${threadId}`);
     let runStatus = await this.openai.beta.threads.runs.retrieve(threadId, runId);
+    console.log(`[OpenAI] Initial run status: ${runStatus.status}`);
 
     while (runStatus.status !== 'completed' && attempts < MAX_COMPLETION_ATTEMPTS) {
-      console.log(`Status: ${runStatus.status}, attempt ${attempts + 1}/${MAX_COMPLETION_ATTEMPTS}`);
+      console.log(`[OpenAI] Status: ${runStatus.status}, attempt ${attempts + 1}/${MAX_COMPLETION_ATTEMPTS}`);
+
+      // Check for intermediate statuses
+      if (runStatus.status === 'in_progress') {
+        console.log(`[OpenAI] Run ${runId} is in progress`);
+      } else if (runStatus.status === 'queued') {
+        console.log(`[OpenAI] Run ${runId} is queued`);
+      }
 
       // Check for failed or cancelled status
       if (runStatus.status === 'failed' || runStatus.status === 'cancelled' || runStatus.status === 'expired') {
-        console.error(`Run failed with status: ${runStatus.status}`);
-        console.error('Error details:', runStatus.last_error);
+        console.error(`[OpenAI] Run ${runId} failed with status: ${runStatus.status}`);
+        console.error('[OpenAI] Error details:', JSON.stringify(runStatus.last_error));
         throw new Error(`Generation ${runStatus.status}: ${runStatus.last_error?.message || 'Unknown error'}`);
       }
 
       // Check for requiring action (function calling)
       if (runStatus.status === 'requires_action') {
-        console.log('Run requires action:', runStatus.required_action);
+        console.log(`[OpenAI] Run ${runId} requires action:`, JSON.stringify(runStatus.required_action));
         // We don't have function calls implemented, so we'll cancel the run
         await this.openai.beta.threads.runs.cancel(threadId, runId);
         throw new Error('Function calling not implemented');
       }
 
       await new Promise(resolve => setTimeout(resolve, COMPLETION_CHECK_INTERVAL));
-      runStatus = await this.openai.beta.threads.runs.retrieve(threadId, runId);
+      console.log(`[OpenAI] Retrieving updated status for run ${runId} after ${COMPLETION_CHECK_INTERVAL}ms`);
+      try {
+        runStatus = await this.openai.beta.threads.runs.retrieve(threadId, runId);
+        console.log(`[OpenAI] Updated run status: ${runStatus.status}`);
+      } catch (error) {
+        console.error(`[OpenAI] Error retrieving run status: ${error}`);
+        throw error;
+      }
       attempts++;
     }
 
     if (attempts >= MAX_COMPLETION_ATTEMPTS) {
-      console.error('Generation timeout reached');
+      console.error(`[OpenAI] Generation timeout reached for run ${runId} after ${attempts} attempts`);
       // Try to cancel the run before throwing
       try {
+        console.log(`[OpenAI] Attempting to cancel run ${runId}`);
         await this.openai.beta.threads.runs.cancel(threadId, runId);
+        console.log(`[OpenAI] Run ${runId} cancelled successfully`);
       } catch (e) {
-        console.error('Failed to cancel run:', e);
+        console.error(`[OpenAI] Failed to cancel run ${runId}:`, e);
       }
       throw new Error('Generation timeout');
     }
 
     if (runStatus.status !== 'completed') {
+      console.error(`[OpenAI] Run ${runId} not completed, final status: ${runStatus.status}`);
       throw new Error(`Run not completed, final status: ${runStatus.status}`);
     }
 
+    console.log(`[OpenAI] Run ${runId} completed successfully`);
     return runStatus;
   }
+  
+  /**
+   * Comprehensive daily job analysis that evaluates jobs against a wide range of criteria
+   * This runs once per day for all jobs and stores the results in the database
+   */
+  public async analyzeJob(job: Job): Promise<JobAnalysis> {
+    try {
+      // Create a comprehensive prompt for job analysis
+      const analysisPrompt = `
+Analyze this job listing against a comprehensive set of criteria and return detailed scores and tags.
 
+Step 1: Analyze the job description for key traits, requirements, and benefits.
+Step 2: Score the job on a scale from -5 to +5 for each criterion below, where:
+  - Positive scores indicate the job has this desirable trait
+  - Negative scores indicate the job has an undesirable trait
+  - Zero means neutral or not applicable
+
+Step 3: Generate a list of descriptive tags for categorizing the job
+
+Return ONLY a JSON object with the following structure:
+{
+  "scores": {
+    "entryLevel": Number,           // How suitable for entry-level candidates (higher is better)
+    "requiresDegree": Number,       // Degree requirements (negative if required)
+    "requiresExperience": Number,   // Experience requirements (negative for high requirements)
+    "salesRole": Number,            // How sales-focused the role is
+    "techRole": Number,             // How technical/IT-focused the role is
+    "designRole": Number,           // How design/creative-focused the role is
+    "customerServiceRole": Number,  // How customer-service oriented the role is
+    "officeSupportRole": Number,    // How administrative/support-oriented the role is
+    "financialRole": Number,        // How finance/accounting-focused the role is
+    "healthcareRole": Number,       // How healthcare-related the role is
+    "skillMatch": Number,           // General skill match for common job seekers
+    "remoteWork": Number,           // Remote work opportunities (positive if available)
+    "partTime": Number,             // Part-time opportunities (positive if available)
+    "salary": Number                // Salary attractiveness (if mentioned)
+  },
+  "tags": [String],                 // Array of descriptive tags (e.g., "remote", "entry-level", "tech", etc.)
+  "canton": String                  // Swiss canton where the job is located (e.g., "ZH", "BE", etc.)
+}`;
+
+      // Format the job information
+      const jobInfo = `
+Title: ${job.title || 'Keine Angabe'}
+Company: ${job.company || 'Keine Angabe'}
+Location: ${job.location || 'Keine Angabe'}
+Workload: ${job.workload || 'Keine Angabe'}
+Published: ${job.published ? new Date(job.published).toLocaleDateString() : 'Keine Angabe'}
+
+Description: 
+${job.description || 'Keine Beschreibung verfügbar'}
+`;
+
+      console.log(`Analyzing job: ${job.title}`);
+      
+      // Use OpenAI chat completions API
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-4o-mini', // Using the same model as the existing rankJob for consistency
+        messages: [
+          {
+            role: 'system',
+            content: analysisPrompt
+          },
+          {
+            role: 'user',
+            content: jobInfo
+          }
+        ],
+        temperature: 0.1, // Lower temperature for more consistent responses
+        response_format: { type: 'json_object' }
+      });
+
+      // Get the response content
+      const responseContent = response.choices[0]?.message?.content;
+      
+      if (!responseContent) {
+        throw new Error("Empty response from OpenAI");
+      }
+
+      try {
+        // Parse the JSON response
+        const json = JSON.parse(responseContent);
+        console.log(`Parsed analysis result:`, json);
+        
+        // Validate the JSON structure
+        const result = jobAnalysisSchema.parse(json) as JobAnalysis;
+        return result;
+      } catch (error) {
+        console.error("Failed to parse job analysis response:", error);
+        console.error("Original response:", responseContent);
+        
+        // Return a default analysis as fallback
+        return {
+          scores: {
+            entryLevel: 0,
+            requiresDegree: 0,
+            requiresExperience: 0,
+            salesRole: 0,
+            techRole: 0,
+            designRole: 0,
+            customerServiceRole: 0,
+            officeSupportRole: 0,
+            financialRole: 0,
+            healthcareRole: 0,
+            skillMatch: 0,
+            remoteWork: 0,
+            partTime: 0,
+            salary: 0
+          },
+          tags: [],
+          canton: job.canton || "N/A"
+        };
+      }
+    } catch (error) {
+      console.error("Error in analyzeJob:", error);
+      // Provide a fallback analysis rather than crashing
+      return {
+        scores: {
+          entryLevel: 0,
+          requiresDegree: 0,
+          requiresExperience: 0,
+          salesRole: 0,
+          techRole: 0,
+          designRole: 0,
+          customerServiceRole: 0,
+          officeSupportRole: 0,
+          financialRole: 0,
+          healthcareRole: 0,
+          skillMatch: 0,
+          remoteWork: 0,
+          partTime: 0,
+          salary: 0
+        },
+        tags: [],
+        canton: job.canton || "N/A"
+      };
+    }
+  }
+
+  /**
+   * Batch processes multiple jobs for daily analysis
+   * This function should be run once per day via a scheduled task
+   */
+  public async filterJobsOnceDaily(limit: number = 100): Promise<number> {
+    console.log(`Starting daily job filtering for ${limit} jobs`);
+    
+    // Get jobs that haven't been analyzed recently or at all
+    // Order by published date to prioritize newer jobs
+    const jobs = await prisma.jobs.findMany({
+      where: {
+        OR: [
+          { last_analyzed: null },
+          { last_analyzed: { lt: new Date(Date.now() - 24 * 60 * 60 * 1000) } }, // Older than 24 hours
+        ]
+      },
+      orderBy: { published: 'desc' },
+      take: limit
+    });
+    
+    console.log(`Found ${jobs.length} jobs to analyze`);
+    
+    // Process each job and update in database
+    let processedCount = 0;
+    
+    for (const job of jobs) {
+      try {
+        console.log(`Processing job ${job.id}: ${job.title}`);
+        
+        // Analyze the job
+        const analysis = await this.analyzeJob(job as unknown as Job);
+        
+        // Update the job record with scores, tags, and analysis date
+        await prisma.jobs.update({
+          where: { id: job.id },
+          data: {
+            scores: analysis.scores,
+            tags: analysis.tags,
+            canton: analysis.canton || job.canton,
+            last_analyzed: new Date()
+          }
+        });
+        
+        processedCount++;
+        console.log(`Successfully processed job ${job.id}`);
+        
+        // Add a small delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 500));
+      } catch (error) {
+        console.error(`Error processing job ${job.id}:`, error);
+        // Continue with next job
+      }
+    }
+    
+    console.log(`Completed daily job filtering. Processed ${processedCount} jobs`);
+    return processedCount;
+  }
+
+  /**
+   * Personalizes job recommendations locally based on pre-computed scores and user preferences
+   */
+  public async getPersonalizedJobs(userId: string, page: number = 1, pageSize: number = 20): Promise<{ jobs: any[], total: number }> {
+    try {
+      // Get user's preferences from their job ranker prompt
+      const userProfile = await prisma.userProfile.findUnique({
+        where: { userId }
+      });
+      
+      // Extract preference weights from the user's job ranker prompt
+      const weights = this.extractUserPreferenceWeights(userProfile?.jobRankerPrompt);
+      
+      // Define a base query for jobs with pre-computed scores
+      const baseQuery = {
+        where: {
+          scores: { not: null },
+          job_preferences: {
+            none: {
+              user_id: userId,
+              is_hidden: true,
+            }
+          }
+        }
+      };
+      
+      // Count total jobs matching the criteria
+      const totalJobs = await prisma.jobs.count(baseQuery);
+      
+      // Fetch the jobs with their scores
+      const jobs = await prisma.jobs.findMany({
+        ...baseQuery,
+        include: {
+          job_preferences: {
+            where: {
+              user_id: userId
+            }
+          }
+        },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      });
+      
+      // Calculate personalized score for each job and sort
+      const personalizedJobs = jobs.map(job => {
+        const personalizedScore = this.calculatePersonalizedScore(job, weights);
+        return {
+          ...job,
+          personalizedScore
+        };
+      }).sort((a, b) => b.personalizedScore - a.personalizedScore);
+      
+      return {
+        jobs: personalizedJobs,
+        total: totalJobs
+      };
+    } catch (error) {
+      console.error("Error in getPersonalizedJobs:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Extracts preference weights from a user's job ranker prompt
+   * This parses the prompt to identify what criteria the user cares about
+   */
+  private extractUserPreferenceWeights(jobRankerPrompt?: string): Record<string, number> {
+    if (!jobRankerPrompt) {
+      // Default weights if no prompt is provided
+      return {
+        entryLevel: 1,
+        requiresDegree: -1,
+        requiresExperience: -1,
+        techRole: 0.5,
+        designRole: 0.5,
+        customerServiceRole: 0.5,
+        officeSupportRole: 0.5,
+        skillMatch: 1,
+        remoteWork: 0.5
+      };
+    }
+
+    const weights: Record<string, number> = {
+      // Initialize with default weights
+      entryLevel: 0,
+      requiresDegree: 0,
+      requiresExperience: 0,
+      salesRole: 0,
+      techRole: 0,
+      designRole: 0,
+      customerServiceRole: 0,
+      officeSupportRole: 0,
+      financialRole: 0,
+      healthcareRole: 0,
+      skillMatch: 0,
+      remoteWork: 0,
+      partTime: 0,
+      salary: 0
+    };
+
+    // Helper function to extract points from prompt
+    const extractPoints = (regex: RegExp, criterionKey: string): void => {
+      const match = jobRankerPrompt.match(regex);
+      if (match && match[1]) {
+        const points = parseFloat(match[1]);
+        if (!isNaN(points)) {
+          weights[criterionKey] = points;
+        }
+      }
+    };
+
+    // Extract points for various criteria from the prompt
+    extractPoints(/Einstiegsstelle.*?\(([+-]?\d+(?:\.\d+)?)\)/i, 'entryLevel');
+    extractPoints(/Hochschulabschluss.*?\(([+-]?\d+(?:\.\d+)?)\)/i, 'requiresDegree');
+    extractPoints(/Berufserfahrung.*?\(([+-]?\d+(?:\.\d+)?)\)/i, 'requiresExperience');
+    extractPoints(/Software-\/Webentwicklung.*?\(([+-]?\d+(?:\.\d+)?)\)/i, 'techRole');
+    extractPoints(/Grafikdesign.*?\(([+-]?\d+(?:\.\d+)?)\)/i, 'designRole');
+    extractPoints(/Kundendienst.*?\(([+-]?\d+(?:\.\d+)?)\)/i, 'customerServiceRole');
+    extractPoints(/Kaufmännische.*?\(([+-]?\d+(?:\.\d+)?)\)/i, 'officeSupportRole');
+    
+    // Look for tools/skills matching
+    if (jobRankerPrompt.includes('HTML') || 
+        jobRankerPrompt.includes('CSS') || 
+        jobRankerPrompt.includes('JavaScript')) {
+      weights.skillMatch = 1;
+      weights.techRole = Math.max(weights.techRole, 0.5);
+    }
+    
+    // Consider remote work preferences if mentioned
+    if (jobRankerPrompt.toLowerCase().includes('remote') || 
+        jobRankerPrompt.toLowerCase().includes('homeoffice')) {
+      weights.remoteWork = 1;
+    }
+
+    return weights;
+  }
+
+  /**
+   * Calculates a personalized score for a job based on pre-computed scores and user preferences
+   */
+  private calculatePersonalizedScore(job: any, weights: Record<string, number>): number {
+    // If job doesn't have scores, return a low score
+    if (!job.scores) return -100;
+    
+    const scores = job.scores as JobScore;
+    let totalScore = 0;
+    let weightSum = 0;
+    
+    // Calculate weighted sum of scores based on user preferences
+    for (const [criterion, weight] of Object.entries(weights)) {
+      if (weight !== 0 && scores[criterion] !== undefined) {
+        totalScore += scores[criterion] * weight;
+        weightSum += Math.abs(weight);
+      }
+    }
+    
+    // Normalize score to a -5 to +5 scale
+    const normalizedScore = weightSum > 0 
+      ? totalScore / weightSum 
+      : 0;
+    
+    // Apply additional factors based on job preferences
+    let adjustedScore = normalizedScore;
+    
+    // Consider existing user preferences for this job
+    if (job.job_preferences && job.job_preferences.length > 0) {
+      const preference = job.job_preferences[0];
+      
+      // Boost starred jobs
+      if (preference.is_starred) {
+        adjustedScore += 2;
+      }
+      
+      // Use existing ranking as a factor
+      if (preference.ranking === 'bingo') adjustedScore += 1;
+      else if (preference.ranking === 'good') adjustedScore += 0.5;
+      else if (preference.ranking === 'bad') adjustedScore -= 1;
+    }
+    
+    // Factor in recency of the job posting
+    if (job.published) {
+      const daysAgo = (Date.now() - new Date(job.published).getTime()) / (1000 * 60 * 60 * 24);
+      if (daysAgo < 7) {
+        adjustedScore += 0.5; // Small boost for recent jobs
+      }
+    }
+    
+    return adjustedScore;
+  }
+  
+  /**
+   * Ranks jobs using a hybrid approach that can use either the new or old method
+   * This serves as a wrapper to manage the transition between approaches
+   */
+  public async rankJobHybrid(job: Job, userId: string): Promise<JobRanking> {
+    if (USE_OPTIMIZED_JOB_FILTERING) {
+      try {
+        // Use pre-computed scores if available
+        const jobRecord = await prisma.jobs.findUnique({
+          where: { id: job.id },
+        });
+        
+        if (jobRecord?.scores) {
+          // Get user preferences to translate scores to a ranking
+          const userPreferences = await prisma.userProfile.findUnique({
+            where: { userId }
+          });
+          
+          const weights = this.extractUserPreferenceWeights(userPreferences?.jobRankerPrompt);
+          const score = this.calculatePersonalizedScore(jobRecord, weights);
+          
+          // Convert score to ranking
+          let ranking: "bingo" | "good" | "okay" | "bad";
+          if (score >= 3) ranking = "bingo";
+          else if (score >= 1) ranking = "good";
+          else if (score >= -1) ranking = "okay";
+          else ranking = "bad";
+          
+          return {
+            ranking,
+            canton: jobRecord.canton || "N/A"
+          };
+        }
+      } catch (error) {
+        console.error("Error using optimized ranking:", error);
+        // Fall back to the old method on error
+      }
+    }
+    
+    // Fall back to the original method if optimized filtering is disabled
+    // or if pre-computed scores aren't available for this job
+    return this.rankJob(job, userId);
+  }
+  
   public async deleteAssistant(assistantId: string): Promise<void> {
     try {
       await this.openai.beta.assistants.del(assistantId);
