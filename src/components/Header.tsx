@@ -1,7 +1,8 @@
 'use client'
 
+import { useState } from 'react'
 import { Button } from "@/components/ui/button"
-import { List, FileText, ChevronLeft } from 'lucide-react'
+import { List, FileText, ChevronLeft, Menu, X } from 'lucide-react'
 import { JobFilter } from "@/components/JobFilter"
 import { SearchBar } from "@/components/SearchBar"
 import { ThemeToggle } from "@/components/ThemeToggle"
@@ -16,12 +17,27 @@ interface HeaderProps {
 }
 
 export default function Header({ onToggleJobList, showJobList, selectedJob }: HeaderProps) {
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+
   return (
     <>
-      <Sidebar />
+      <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
       <header className="border-b bg-background h-16">
         <div className="flex p-3 lg:flex-row lg:items-center justify-between">
-          <div className="flex items-center space-x-3 pl-10 flex-1">
+          <div className="flex items-center space-x-3 flex-1">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+            >
+              {!sidebarOpen ? (
+                <Menu className="h-4 w-4" />
+              ) : (
+                <X className="h-4 w-4" />
+              )}
+            </Button>
+            
             {selectedJob && (
               <Button 
                 variant="ghost" 

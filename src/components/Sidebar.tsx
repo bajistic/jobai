@@ -26,31 +26,18 @@ import {
 import Link from "next/link"
 import { useSession } from 'next-auth/react'
 
-export default function Sidebar() {
-  const [isOpen, setIsOpen] = useState(false)
+interface SidebarProps {
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
+}
+
+export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   const [jobsOpen, setJobsOpen] = useState(true)
   const [adminOpen, setAdminOpen] = useState(false)
   const { data: session } = useSession()
 
   return (
     <>
-      {/* Toggle button - always visible */}
-      <div className="fixed top-0 left-0 z-50 h-16 flex items-center">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={() => setIsOpen(!isOpen)}
-          aria-label={isOpen ? "Close sidebar" : "Open sidebar"}
-          className="ml-3"
-        >
-          {!isOpen ? (
-            <Menu className="h-4 w-4" />
-          ) : (
-            <X className="h-4 w-4" />
-          )}
-        </Button>
-      </div>
-
       {/* Sidebar content - hidden when collapsed */}
       <div className={cn(
         "fixed top-16 left-0 h-[calc(100vh-4rem)] border-r bg-background",
