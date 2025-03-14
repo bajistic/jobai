@@ -18,7 +18,7 @@ export function SearchBar() {
     const params = new URLSearchParams(searchParams)
     if (debouncedSearch) {
       params.set('q', debouncedSearch)
-      
+
       // Track search event when user completes typing (debounced)
       if (debouncedSearch.length > 2) {
         trackEvent(AnalyticsEvents.JOBS_SEARCHED, {
@@ -39,8 +39,8 @@ export function SearchBar() {
         type="search"
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
-        className="pl-8 w-full h-10"
-        placeholder="Search jobs, companies, locations..."
+        className="pl-8 w-full h-9 text-sm"
+        placeholder="Search"
         aria-label="Search jobs"
       />
     </div>

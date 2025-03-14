@@ -22,12 +22,12 @@ export default function Header({ onToggleJobList, showJobList, selectedJob }: He
   return (
     <>
       <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
-      <header className="border-b bg-background h-16">
-        <div className="flex p-3 lg:flex-row lg:items-center justify-between">
+      <header className="border-b bg-background h-14">
+        <div className="flex p-2 lg:flex-row lg:items-center justify-between">
           <div className="flex items-center space-x-3 flex-1">
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => setSidebarOpen(!sidebarOpen)}
               aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
             >
@@ -37,12 +37,12 @@ export default function Header({ onToggleJobList, showJobList, selectedJob }: He
                 <X className="h-4 w-4" />
               )}
             </Button>
-            
+
             {selectedJob && (
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="lg:hidden" 
+              <Button
+                variant="ghost"
+                size="icon"
+                className="lg:hidden"
                 onClick={onToggleJobList}
                 aria-label="Back to job list"
               >

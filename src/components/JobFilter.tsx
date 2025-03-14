@@ -83,7 +83,7 @@ function JobFilterContent() {
       <PopoverTrigger asChild>
         <Button 
           variant="outline" 
-          className="h-10 px-4"
+          className="h-9 px-3 text-sm"
           aria-label="Filter jobs"
         >
           <Filter className="h-4 w-4" />
