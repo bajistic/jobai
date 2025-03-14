@@ -18,7 +18,7 @@ import { ChevronLeft, ChevronRight, MoreVertical, BookmarkIcon, EyeOff, FileText
 import ReactMarkdown from 'react-markdown'
 import { Job } from "@/lib/types/shared"
 import { JobStatusButton } from "./JobStatusButton"
-import { GenerateLetterDialog } from './generate-letter-dialog'
+import { CoverLetterSection } from './CoverLetterSection'
 import { useRouter } from 'next/navigation'
 import { trackEvent, AnalyticsEvents } from '@/lib/analytics'
 import { useJobs } from '@/contexts/JobContext'
@@ -258,11 +258,16 @@ export default function JobPreview({ selectedJob, onBack }: JobPreviewProps) {
         </DialogContent>
       </Dialog>
 
-      <GenerateLetterDialog
-        open={showLetterDialog}
-        onOpenChange={setShowLetterDialog}
-        job={selectedJob}
-      />
+      <Dialog open={showLetterDialog} onOpenChange={setShowLetterDialog}>
+        <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-4xl max-h-[90vh] p-0">
+          <CoverLetterSection
+            job={selectedJob}
+            dialogMode={true}
+            open={showLetterDialog}
+            onOpenChange={setShowLetterDialog}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
     
     {/* Mobile navigation and actions */}

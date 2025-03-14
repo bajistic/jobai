@@ -16,7 +16,7 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { MoreVertical, BookmarkIcon, EyeOff, FileText, PenSquare } from 'lucide-react'
 import { cn } from "@/lib/utils"
-import { GenerateLetterDialog } from '@/components/generate-letter-dialog'
+import { CoverLetterSection } from '@/components/CoverLetterSection'
 import { trackEvent, AnalyticsEvents } from '@/lib/analytics'
 
 interface JobCardProps {
@@ -232,11 +232,16 @@ export function JobCard({ job, onUpdate, isSelected, onSelect }: JobCardProps) {
         </DialogContent>
       </Dialog>
 
-      <GenerateLetterDialog
-        open={showLetterDialog}
-        onOpenChange={setShowLetterDialog}
-        job={job}
-      />
+      <Dialog open={showLetterDialog} onOpenChange={setShowLetterDialog}>
+        <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-4xl max-h-[90vh] p-0">
+          <CoverLetterSection
+            job={job}
+            dialogMode={true}
+            open={showLetterDialog}
+            onOpenChange={setShowLetterDialog}
+          />
+        </DialogContent>
+      </Dialog>
     </>
   )
 }
