@@ -169,12 +169,21 @@ function JobProviderContent({
         throw new Error('Failed to update job status');
       }
 
-      // Refetch jobs to update the list
+      // Update the job status in the local state immediately for real-time UI updates
+      setJobs(currentJobs => 
+        currentJobs.map(job => 
+          job.id === jobId ? { ...job, status } : job
+        )
+      );
+      
+      // Then refetch jobs to ensure data consistency
       await fetchJobs();
+      return true;
     } catch (error) {
       console.error('Error updating job status:', error);
+      throw error;
     }
-  }, [fetchJobs]);
+  }, [fetchJobs, setJobs]);
 
   const fetchUnrankedJobs = useCallback(async () => {
     try {

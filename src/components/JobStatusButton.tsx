@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { useJobs } from '@/contexts/JobContext';
+import { useToast } from '@/hooks/use-toast';
 
 interface JobStatusButtonProps {
   jobId: number;
@@ -16,6 +17,7 @@ interface JobStatusButtonProps {
 
 export function JobStatusButton({ jobId, currentStatus }: JobStatusButtonProps) {
   const { updateJobStatus } = useJobs();
+  const { toast } = useToast();
 
   const statuses = [
     { value: 'new', label: 'New' },
@@ -23,6 +25,23 @@ export function JobStatusButton({ jobId, currentStatus }: JobStatusButtonProps) 
     { value: 'interview', label: 'Interview' },
     { value: 'rejected', label: 'Rejected' },
   ];
+
+  const handleStatusChange = async (status: 'new' | 'applied' | 'rejected' | 'interview') => {
+    const statusLabel = statuses.find(s => s.value === status)?.label;
+    try {
+      await updateJobStatus(jobId, status);
+      toast({
+        title: "Status updated",
+        description: `Job status changed to ${statusLabel}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Update failed",
+        description: "Could not update job status",
+        variant: "destructive"
+      });
+    }
+  };
 
   return (
     <DropdownMenu>
@@ -35,7 +54,7 @@ export function JobStatusButton({ jobId, currentStatus }: JobStatusButtonProps) 
         {statuses.map((status) => (
           <DropdownMenuItem
             key={status.value}
-            onClick={() => updateJobStatus(jobId, status.value as 'new' | 'applied' | 'rejected' | 'interview')}
+            onClick={() => handleStatusChange(status.value as 'new' | 'applied' | 'rejected' | 'interview')}
           >
             {status.label}
           </DropdownMenuItem>
