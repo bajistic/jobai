@@ -23,29 +23,20 @@ export async function GET(request: NextRequest) {
 
     console.log('API Received params:', { onlyStarred, showHidden, status, page, pageSize, location, searchQuery, ranking })
 
+    // Build job_preferences conditions
+    const jobPrefsConditions = {
+      user_id: userId,
+      ...(status && { status: status as job_status }),
+      ...(onlyStarred && { is_starred: true }),
+      ...(showHidden && { is_hidden: true }),
+      ...(ranking && ranking !== 'all' && { ranking: ranking })
+    };
+
     const where = {
-      ...(status && {
+      // Only add job_preferences if we have any conditions beyond user_id
+      ...(Object.keys(jobPrefsConditions).length > 1 && {
         job_preferences: {
-          some: {
-            status: status as job_status,
-            user_id: userId
-          }
-        }
-      }),
-      ...(onlyStarred && {
-        job_preferences: {
-          some: {
-            is_starred: true,
-            user_id: userId
-          }
-        }
-      }),
-      ...(showHidden && {
-        job_preferences: {
-          some: {
-            is_hidden: true,
-            user_id: userId
-          }
+          some: jobPrefsConditions
         }
       }),
       ...(location && {
@@ -59,14 +50,6 @@ export async function GET(request: NextRequest) {
           { title: { contains: searchQuery, mode: 'insensitive' as const } },
           { description: { contains: searchQuery, mode: 'insensitive' as const } }
         ]
-      }),
-      ...(ranking && ranking !== 'all' && {
-        job_preferences: {
-          some: {
-            ranking: ranking,
-            user_id: userId
-          }
-        }
       }),
     }
 
