@@ -18,11 +18,20 @@ export default function HiddenJobsPage() {
     pagination: { currentPage }
   } = useJobs()
 
-  useEffect(() => {
-    fetchJobs({ showHidden: true })
-  }, [fetchJobs, currentPage])
-
   const isMobile = useIsMobile()
+
+  // Initialize with empty selection on first render only
+  useEffect(() => {
+    // Only reset on initial page load, not during updates
+    if (isMobile) {
+      setSelectedJobId(null);
+    }
+  }, [isMobile, setSelectedJobId]);
+
+  // Fetch jobs when page or filters change
+  useEffect(() => {
+    fetchJobs({ showHidden: true });
+  }, [fetchJobs, currentPage]);
 
   return (
     <div className="flex flex-1 h-full w-full overflow-hidden">

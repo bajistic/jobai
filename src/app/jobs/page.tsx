@@ -12,9 +12,18 @@ export default function JobsPage() {
   const { jobs, loading, totalJobs, selectedJobId, setSelectedJobId, fetchJobs } = useJobs()
   const isMobile = useIsMobile()
 
+  // Initialize with empty selection on first render only
   useEffect(() => {
-    fetchJobs()
-  }, [fetchJobs])
+    // Only reset on initial page load, not during updates
+    if (isMobile) {
+      setSelectedJobId(null);
+    }
+  }, [isMobile, setSelectedJobId]);
+
+  // Fetch jobs when page changes
+  useEffect(() => {
+    fetchJobs();
+  }, [fetchJobs]);
 
   return (
     <div className="flex flex-1 h-full w-full overflow-hidden">

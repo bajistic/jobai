@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
@@ -22,6 +22,7 @@ import { CoverLetterSection } from './CoverLetterSection'
 import { useRouter } from 'next/navigation'
 import { trackEvent, AnalyticsEvents } from '@/lib/analytics'
 import { useJobs } from '@/contexts/JobContext'
+import { toast } from 'sonner'
 
 interface JobPreviewProps {
   selectedJob: Job | null;
@@ -37,11 +38,25 @@ export default function JobPreview({ selectedJob, onBack }: JobPreviewProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [localJobState, setLocalJobState] = useState<{
+    isStarred?: boolean;
+    isHidden?: boolean;
+  }>({});
   
   // Find current job index and calculate previous and next indices
   const currentIndex = selectedJob ? jobs.findIndex(job => job.id === selectedJob.id) : -1;
   const hasPrevJob = currentIndex > 0;
   const hasNextJob = currentIndex < jobs.length - 1 && currentIndex !== -1;
+  
+  // Initialize local state when selected job changes
+  useEffect(() => {
+    if (selectedJob) {
+      setLocalJobState({
+        isStarred: selectedJob.isStarred,
+        isHidden: selectedJob.isHidden
+      });
+    }
+  }, [selectedJob?.id]);
   
   const handlePrevJob = () => {
     if (hasPrevJob && currentIndex > 0) {
@@ -90,30 +105,72 @@ export default function JobPreview({ selectedJob, onBack }: JobPreviewProps) {
   };
 
   const handleMenuAction = async (action: string) => {
+    if (!selectedJob) return;
+    
     try {
       switch (action) {
         case 'star':
+          // Update local state immediately for UI feedback
+          const newStarredState = localJobState.isStarred !== undefined 
+            ? !localJobState.isStarred 
+            : !selectedJob.isStarred;
+            
+          setLocalJobState(prev => ({
+            ...prev,
+            isStarred: newStarredState
+          }));
+          
+          // Show toast notification
+          if (newStarredState) {
+            toast.success('Job starred');
+          } else {
+            toast.success('Job unstarred');
+          }
+          
+          // Make API call
           await fetch(`/api/jobs/${selectedJob.id}/star`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ isStarred: !selectedJob.isStarred }),
+            body: JSON.stringify({ isStarred: newStarredState }),
           });
+          
           trackEvent(AnalyticsEvents.JOB_STARRED, {
             job_id: selectedJob.id.toString(),
-            action: !selectedJob.isStarred ? 'star' : 'unstar',
+            action: newStarredState ? 'star' : 'unstar',
           });
           break;
+          
         case 'hide':
+          // Update local state immediately for UI feedback
+          const newHiddenState = localJobState.isHidden !== undefined 
+            ? !localJobState.isHidden 
+            : !selectedJob.isHidden;
+            
+          setLocalJobState(prev => ({
+            ...prev,
+            isHidden: newHiddenState
+          }));
+          
+          // Show toast notification
+          if (newHiddenState) {
+            toast.success('Job hidden');
+          } else {
+            toast.success('Job unhidden');
+          }
+          
+          // Make API call
           await fetch(`/api/jobs/${selectedJob.id}/hide`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ isHidden: !selectedJob.isHidden }),
+            body: JSON.stringify({ isHidden: newHiddenState }),
           });
+          
           trackEvent(AnalyticsEvents.JOB_HIDDEN, {
             job_id: selectedJob.id.toString(),
-            action: !selectedJob.isHidden ? 'hide' : 'unhide',
+            action: newHiddenState ? 'hide' : 'unhide',
           });
           break;
+          
         case 'notes':
           setShowNotesDialog(true);
           await fetchNotes();
@@ -124,10 +181,23 @@ export default function JobPreview({ selectedJob, onBack }: JobPreviewProps) {
           });
           break;
       }
+      
       // Refresh the job list
       router.refresh();
     } catch (error) {
       console.error('Error handling menu action:', error);
+      
+      // Show error toast
+      toast.error(`Failed to ${action} the job`);
+      
+      // Revert local state on error
+      if (action === 'star' || action === 'hide') {
+        setLocalJobState(prev => ({
+          ...prev,
+          [action === 'star' ? 'isStarred' : 'isHidden']: 
+            selectedJob[action === 'star' ? 'isStarred' : 'isHidden']
+        }));
+      }
     }
   };
 
@@ -146,10 +216,16 @@ export default function JobPreview({ selectedJob, onBack }: JobPreviewProps) {
         throw new Error('Failed to save notes');
       }
 
+      // Show success toast
+      toast.success('Notes saved successfully');
+
       router.refresh();
       setShowNotesDialog(false);
     } catch (error) {
       console.error('Error saving notes:', error);
+      
+      // Show error toast
+      toast.error('Failed to save notes');
     } finally {
       setIsSaving(false);
     }
@@ -163,26 +239,26 @@ export default function JobPreview({ selectedJob, onBack }: JobPreviewProps) {
           <Card>
             <CardHeader>
               <div className="flex justify-between items-start">
-                <CardTitle>
-                  <h2 className="text-2xl font-bold">{selectedJob.title || 'No Title'}</h2>
-                  <p className="text-lg text-muted-foreground dark:text-gray-300 mt-1">{selectedJob.company || 'No Company'}</p>
+                <CardTitle className="w-full pr-2">
+                  <h2 className="text-2xl font-bold break-words leading-tight">{selectedJob.title || 'No Title'}</h2>
+                  <p className="text-lg text-muted-foreground dark:text-gray-300 mt-1 truncate">{selectedJob.company || 'No Company'}</p>
                   <JobStatusButton jobId={selectedJob.id} currentStatus={selectedJob.status} />
                 </CardTitle>
                 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 -mt-1 hidden md:flex">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 -mt-1 hidden md:flex flex-shrink-0">
                       <MoreVertical className="h-5 w-5" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => handleMenuAction('star')}>
                       <BookmarkIcon className="mr-2 h-4 w-4" />
-                      <span>{selectedJob.isStarred ? 'Unstar' : 'Star'}</span>
+                      <span>{(localJobState.isStarred !== undefined ? localJobState.isStarred : selectedJob.isStarred) ? 'Unstar' : 'Star'}</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleMenuAction('hide')}>
                       <EyeOff className="mr-2 h-4 w-4" />
-                      <span>{selectedJob.isHidden ? 'Unhide' : 'Hide'}</span>
+                      <span>{(localJobState.isHidden !== undefined ? localJobState.isHidden : selectedJob.isHidden) ? 'Unhide' : 'Hide'}</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleMenuAction('notes')}>
                       <PenSquare className="mr-2 h-4 w-4" />
@@ -196,7 +272,7 @@ export default function JobPreview({ selectedJob, onBack }: JobPreviewProps) {
                 </DropdownMenu>
               </div>
               
-              <p className="text-muted-foreground dark:text-gray-300">
+              <p className="text-muted-foreground dark:text-gray-300 break-words">
                 {selectedJob.location || 'No Location'} • {selectedJob.status || 'New'}
               </p>
               <Button size="lg" className="mt-4">Apply Now</Button>
@@ -271,32 +347,33 @@ export default function JobPreview({ selectedJob, onBack }: JobPreviewProps) {
     </div>
     
     {/* Mobile navigation and actions */}
-    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t px-2 py-3 flex items-center">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t px-2 py-3 flex items-center z-10">
       <div className="flex w-full justify-between items-center">
         {/* Back button */}
         <Button 
           variant="ghost" 
           size="sm"
           onClick={onBack}
-          className="mr-1"
+          className="mr-1 flex-shrink-0"
         >
           <ChevronLeft className="h-4 w-4 mr-1" />
           Back
         </Button>
         
         {/* Job navigation */}
-        <div className="flex items-center justify-center flex-1">
+        <div className="flex items-center justify-center flex-1 px-1 overflow-hidden">
           <Button
             variant="ghost"
             size="icon"
             onClick={handlePrevJob}
             disabled={!hasPrevJob}
             aria-label="Previous job"
+            className="flex-shrink-0"
           >
             <ChevronLeft className="h-5 w-5" />
           </Button>
           
-          <span className="text-sm text-muted-foreground mx-2">
+          <span className="text-sm text-muted-foreground mx-2 truncate">
             {currentIndex + 1} / {jobs.length}
           </span>
           
@@ -306,6 +383,7 @@ export default function JobPreview({ selectedJob, onBack }: JobPreviewProps) {
             onClick={handleNextJob}
             disabled={!hasNextJob}
             aria-label="Next job"
+            className="flex-shrink-0"
           >
             <ChevronRight className="h-5 w-5" />
           </Button>
@@ -315,7 +393,7 @@ export default function JobPreview({ selectedJob, onBack }: JobPreviewProps) {
         <Collapsible 
           open={isMenuOpen} 
           onOpenChange={setIsMenuOpen}
-          className="relative"
+          className="relative flex-shrink-0"
         >
           <CollapsibleTrigger asChild>
             <Button 
@@ -328,10 +406,10 @@ export default function JobPreview({ selectedJob, onBack }: JobPreviewProps) {
             </Button>
           </CollapsibleTrigger>
           
-          <CollapsibleContent className="absolute bottom-[calc(100%+10px)] right-0 p-2 bg-background border rounded-md shadow-md min-w-[200px]">
+          <CollapsibleContent className="absolute bottom-[calc(100%+10px)] right-0 p-2 bg-background border rounded-md shadow-md min-w-[200px] z-20">
             <div className="flex flex-col space-y-2">
               <Button 
-                variant={selectedJob.isStarred ? "secondary" : "outline"} 
+                variant={(localJobState.isStarred !== undefined ? localJobState.isStarred : selectedJob.isStarred) ? "secondary" : "outline"} 
                 size="sm"
                 className="justify-start"
                 onClick={() => {
@@ -340,7 +418,7 @@ export default function JobPreview({ selectedJob, onBack }: JobPreviewProps) {
                 }}
               >
                 <BookmarkIcon className="h-4 w-4 mr-2" />
-                {selectedJob.isStarred ? 'Unstar' : 'Star'}
+                {(localJobState.isStarred !== undefined ? localJobState.isStarred : selectedJob.isStarred) ? 'Unstar' : 'Star'}
               </Button>
               
               <Button 
@@ -370,7 +448,7 @@ export default function JobPreview({ selectedJob, onBack }: JobPreviewProps) {
               </Button>
               
               <Button 
-                variant={selectedJob.isHidden ? "secondary" : "outline"}
+                variant={(localJobState.isHidden !== undefined ? localJobState.isHidden : selectedJob.isHidden) ? "secondary" : "outline"}
                 size="sm"
                 className="justify-start"
                 onClick={() => {
@@ -379,7 +457,7 @@ export default function JobPreview({ selectedJob, onBack }: JobPreviewProps) {
                 }}
               >
                 <EyeOff className="h-4 w-4 mr-2" />
-                {selectedJob.isHidden ? 'Unhide' : 'Hide'}
+                {(localJobState.isHidden !== undefined ? localJobState.isHidden : selectedJob.isHidden) ? 'Unhide' : 'Hide'}
               </Button>
             </div>
           </CollapsibleContent>

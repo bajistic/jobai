@@ -1,11 +1,12 @@
 'use client'
 
 import { Job } from '@/lib/types/shared'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, JobTitleLink } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { toast } from "sonner"
 import {
   Dialog,
   DialogContent,
@@ -32,6 +33,18 @@ export function JobCard({ job, onUpdate, isSelected, onSelect }: JobCardProps) {
   const [notes, setNotes] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [localJobState, setLocalJobState] = useState({
+    isStarred: job.isStarred,
+    isHidden: job.isHidden,
+  })
+  
+  // Update local state when job prop changes
+  useEffect(() => {
+    setLocalJobState({
+      isStarred: job.isStarred,
+      isHidden: job.isHidden,
+    });
+  }, [job.isStarred, job.isHidden])
 
   const fetchNotes = async () => {
     setIsLoading(true)
@@ -47,33 +60,72 @@ export function JobCard({ job, onUpdate, isSelected, onSelect }: JobCardProps) {
     }
   }
 
-  const handleMenuAction = async (action: string) => {
+  const handleMenuAction = async (action: string, e?: React.MouseEvent) => {
+    // Stop propagation to prevent job selection
+    if (e) {
+      e.stopPropagation();
+    }
+    
     try {
       switch (action) {
         case 'star':
+          // Update local state immediately for UI feedback
+          const newStarredState = !localJobState.isStarred;
+          setLocalJobState(prev => ({
+            ...prev,
+            isStarred: newStarredState
+          }));
+          
+          // Show toast notification
+          if (newStarredState) {
+            toast.success('Job starred');
+          } else {
+            toast.success('Job unstarred');
+          }
+          
+          // API call
           await fetch(`/api/jobs/${job.id}/star`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ isStarred: !job.isStarred }),
+            body: JSON.stringify({ isStarred: newStarredState }),
           })
+          
           // Track starring/unstarring event
           trackEvent(AnalyticsEvents.JOB_STARRED, {
             job_id: job.id.toString(),
-            action: !job.isStarred ? 'star' : 'unstar',
+            action: newStarredState ? 'star' : 'unstar',
           })
           break
+          
         case 'hide':
+          // Update local state immediately for UI feedback
+          const newHiddenState = !localJobState.isHidden;
+          setLocalJobState(prev => ({
+            ...prev,
+            isHidden: newHiddenState
+          }));
+          
+          // Show toast notification
+          if (newHiddenState) {
+            toast.success('Job hidden');
+          } else {
+            toast.success('Job unhidden');
+          }
+          
+          // API call
           await fetch(`/api/jobs/${job.id}/hide`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ isHidden: !job.isHidden }),
+            body: JSON.stringify({ isHidden: newHiddenState }),
           })
+          
           // Track hiding/unhiding event
           trackEvent(AnalyticsEvents.JOB_HIDDEN, {
             job_id: job.id.toString(),
-            action: !job.isHidden ? 'hide' : 'unhide',
+            action: newHiddenState ? 'hide' : 'unhide',
           })
           break
+          
         case 'notes':
           setShowNotesDialog(true)
           await fetchNotes()
@@ -88,7 +140,18 @@ export function JobCard({ job, onUpdate, isSelected, onSelect }: JobCardProps) {
       // Refresh the job list
       onUpdate?.()
     } catch (error) {
-      console.error('Error handling menu action:', error)
+      console.error('Error handling menu action:', error);
+      
+      // Show error toast
+      toast.error(`Failed to ${action} the job`);
+      
+      // Revert local state on error
+      if (action === 'star' || action === 'hide') {
+        setLocalJobState(prev => ({
+          ...prev,
+          [action === 'star' ? 'isStarred' : 'isHidden']: job[action === 'star' ? 'isStarred' : 'isHidden']
+        }));
+      }
     }
   }
 
@@ -107,11 +170,17 @@ export function JobCard({ job, onUpdate, isSelected, onSelect }: JobCardProps) {
         throw new Error('Failed to save notes')
       }
 
+      // Show success toast
+      toast.success('Notes saved successfully');
+
       // Update local state
       onUpdate?.()
       setShowNotesDialog(false)
     } catch (error) {
       console.error('Error saving notes:', error)
+      
+      // Show error toast
+      toast.error('Failed to save notes');
     } finally {
       setIsSaving(false)
     }
@@ -151,19 +220,22 @@ export function JobCard({ job, onUpdate, isSelected, onSelect }: JobCardProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => handleMenuAction('star')}>
+              <DropdownMenuItem onClick={(e) => handleMenuAction('star', e)}>
                 <BookmarkIcon className="mr-2 h-4 w-4" />
-                <span>{job.isStarred ? 'Unstar' : 'Star'}</span>
+                <span>{localJobState.isStarred ? 'Unstar' : 'Star'}</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleMenuAction('hide')}>
+              <DropdownMenuItem onClick={(e) => handleMenuAction('hide', e)}>
                 <EyeOff className="mr-2 h-4 w-4" />
-                <span>{job.isHidden ? 'Unhide' : 'Hide'}</span>
+                <span>{localJobState.isHidden ? 'Unhide' : 'Hide'}</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleMenuAction('notes')}>
+              <DropdownMenuItem onClick={(e) => handleMenuAction('notes', e)}>
                 <PenSquare className="mr-2 h-4 w-4" />
                 <span>Notes</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setShowLetterDialog(true)}>
+              <DropdownMenuItem onClick={(e) => {
+                e.stopPropagation();
+                setShowLetterDialog(true);
+              }}>
                 <FileText className="mr-2 h-4 w-4" />
                 <span>Generate Letter</span>
               </DropdownMenuItem>
@@ -181,13 +253,13 @@ export function JobCard({ job, onUpdate, isSelected, onSelect }: JobCardProps) {
                 year: 'numeric'
               }) : 'No date'}
             </p>
-            {job.isStarred && (
+            {localJobState.isStarred && (
               <Badge
                 variant="secondary"
                 className="cursor-pointer hover:bg-accent"
                 onClick={(e) => {
                   e.stopPropagation()
-                  handleMenuAction('star')
+                  handleMenuAction('star', e)
                 }}
               >
                 <BookmarkIcon className="h-3 w-3 mr-1" />
