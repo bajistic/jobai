@@ -11,6 +11,7 @@ import { usePathname } from 'next/navigation'
 import { JobProvider } from '@/contexts/JobContext'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from 'sonner'
+import { Toaster as UIToaster } from '@/components/ui/toaster'
 import GoogleAnalytics from '@/components/GoogleAnalytics'
 
 const Header = dynamic(() => import('@/components/Header'), { ssr: false })
@@ -104,6 +105,7 @@ export default function RootLayout({
             </Suspense>
           </Providers>
           <Toaster />
+          <UIToaster />
           <GoogleAnalytics />
         </JobProvider>
       </body>

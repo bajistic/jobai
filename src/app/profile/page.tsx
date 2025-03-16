@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardHeader, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
+import { ExpandedTextEditor } from '@/components/ExpandedTextEditor'
 
 export default function ProfilePage() {
   const { data: session } = useSession()
@@ -35,13 +36,19 @@ export default function ProfilePage() {
       const response = await fetch('/api/profile')
       if (response.ok) {
         const data = await response.json()
+        console.log("Profile data:", data);
+        
+        // Extract composer prompt correctly
+        const composerAssistant = data.assistants?.find(
+          (a: any) => a.assistantName.startsWith('Composer_')
+        );
+        const composerPrompt = composerAssistant?.systemPrompt || '';
+        
         setProfile({
           ...data,
           documents: data.documents || [],
           jobRankerPrompt: data.jobRankerPrompt || '',
-          composerPrompt: data.assistants?.length > 0 ? 
-            (data.assistants.find((a: any) => a.assistantName.startsWith('Composer_'))?.systemPrompt || '') : 
-            ''
+          composerPrompt: composerPrompt
         })
       }
     } catch (error) {
@@ -142,28 +149,30 @@ export default function ProfilePage() {
 
   return (
     <ScrollArea className="h-screen">
-      <div className="min-h-screen bg-background py-12">
-        <Card className="max-w-3xl mx-auto shadow-sm mb-12">
+      <div className="min-h-screen bg-background py-4 sm:py-12 px-2 sm:px-4">
+        <Card className="max-w-3xl mx-auto shadow-sm mb-8 sm:mb-12">
           <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <h1 className="text-3xl font-bold">Profile</h1>
-              <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <h1 className="text-2xl sm:text-3xl font-bold">Profile</h1>
+              <div className="flex flex-wrap gap-2">
                 {!isEditing ? (
                   <Button 
                     onClick={() => setIsEditing(true)}
                     variant="default"
-                    className="flex items-center gap-2"
+                    size="sm"
+                    className="flex items-center gap-1 text-xs sm:text-sm sm:gap-2"
                   >
-                    <Pencil className="h-4 w-4" />
+                    <Pencil className="h-3 w-3 sm:h-4 sm:w-4" />
                     Edit Profile
                   </Button>
                 ) : null}
                 <Button 
                   onClick={handleSignOut} 
                   variant="destructive"
-                  className="flex items-center gap-2"
+                  size="sm"
+                  className="flex items-center gap-1 text-xs sm:text-sm sm:gap-2"
                 >
-                  <LogOut className="h-4 w-4" />
+                  <LogOut className="h-3 w-3 sm:h-4 sm:w-4" />
                   Sign Out
                 </Button>
               </div>
@@ -205,7 +214,7 @@ export default function ProfilePage() {
                     <h3 className="text-lg font-medium mb-4">AI Assistant Configuration</h3>
 
                     {/* Vector Store Section */}
-                    <Card className="mb-6 bg-muted/40">
+                    <Card className="mb-6 bg-muted/40 max-w-full overflow-hidden">
                       <CardContent className="pt-6">
                         <div className="flex items-center gap-2 mb-3">
                           <Database className="h-5 w-5 text-primary" />
@@ -260,7 +269,7 @@ export default function ProfilePage() {
 
                     {/* Assistant Section */}
                     <Card className="bg-muted/40">
-                      <CardContent className="pt-6">
+                      <CardContent className="pt-6 px-3 sm:px-6">
                         <div className="flex items-center gap-2 mb-3">
                           <Bot className="h-5 w-5 text-primary" />
                           <h4 className="font-medium">AI Assistant</h4>
@@ -270,28 +279,50 @@ export default function ProfilePage() {
                         </p>
 
                         {/* Job Filter Prompt */}
-                        <div className="space-y-2">
-                          <label className="block text-sm font-medium">
-                            Job Ranker Criteria
-                          </label>
+                        <div className="space-y-2 mt-6">
+                          <div className="flex justify-between items-center mb-2 flex-wrap">
+                            <div className="flex items-center gap-2 w-full sm:w-auto">
+                              <label className="block text-sm font-medium">
+                                Job Ranker Criteria
+                              </label>
+                              <ExpandedTextEditor 
+                                value={profile.jobRankerPrompt || ''}
+                                onChange={(value) => setProfile({ ...profile, jobRankerPrompt: value })}
+                                title="Job Ranker Instructions"
+                                triggerLabel="Maximize"
+                                placeholder="Enter your custom job ranking criteria..."
+                              />
+                            </div>
+                          </div>
                           <Textarea
                             value={profile.jobRankerPrompt || ''}
                             onChange={(e) => setProfile({ ...profile, jobRankerPrompt: e.target.value })}
                             placeholder="Enter your custom job ranking criteria..."
-                            rows={5}
+                            className="min-h-[120px] w-full"
                           />
                         </div>
 
                         {/* Job Composer Prompt */}
-                        <div className="space-y-2">
-                          <label className="block text-sm font-medium">
-                            Job Composer Criteria
-                          </label>
+                        <div className="space-y-2 mt-6">
+                          <div className="flex justify-between items-center mb-2 flex-wrap">
+                            <div className="flex items-center gap-2 w-full sm:w-auto">
+                              <label className="block text-sm font-medium">
+                                Job Composer Criteria
+                              </label>
+                              <ExpandedTextEditor 
+                                value={profile.composerPrompt || ''}
+                                onChange={(value) => setProfile({ ...profile, composerPrompt: value })}
+                                title="Job Composer Instructions"
+                                triggerLabel="Maximize"
+                                placeholder="Enter your custom job composing criteria..."
+                              />
+                            </div>
+                          </div>
                           <Textarea
                             value={profile.composerPrompt || ''}
                             onChange={(e) => setProfile({ ...profile, composerPrompt: e.target.value })}
                             placeholder="Enter your custom job composing criteria..."
-                            rows={5}
+                            className="min-h-[120px] w-full"
                           />
                         </div>
                       </CardContent>
@@ -299,54 +330,56 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                <div className="flex gap-3 pt-4">
+                <div className="flex flex-wrap gap-2 pt-4">
                   <Button
                     type="submit"
                     disabled={isSaving}
-                    className="flex items-center gap-2"
+                    size="sm"
+                    className="flex items-center gap-1 text-xs sm:text-sm sm:gap-2"
                   >
-                    <Save className="h-4 w-4" />
+                    <Save className="h-3 w-3 sm:h-4 sm:w-4" />
                     {isSaving ? 'Saving...' : 'Save Changes'}
                   </Button>
                   <Button
                     type="button"
                     onClick={() => setIsEditing(false)}
                     variant="outline"
-                    className="flex items-center gap-2"
+                    size="sm"
+                    className="flex items-center gap-1 text-xs sm:text-sm sm:gap-2"
                   >
-                    <X className="h-4 w-4" />
+                    <X className="h-3 w-3 sm:h-4 sm:w-4" />
                     Cancel
                   </Button>
                 </div>
               </form>
             ) : (
-              <div className="space-y-6">
-                <div className="flex items-center space-x-6">
+              <div className="space-y-4 sm:space-y-6">
+                <div className="flex flex-wrap items-center gap-4">
                   {profile.image ? (
                     <img
                       src={profile.image}
                       alt={profile.name || 'Profile picture'}
-                      className="w-24 h-24 rounded-full object-cover border-2 border-border"
+                      className="w-16 h-16 sm:w-24 sm:h-24 rounded-full object-cover border-2 border-border"
                     />
                   ) : (
-                    <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center">
-                      <span className="text-muted-foreground text-2xl">
+                    <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-full bg-muted flex items-center justify-center">
+                      <span className="text-muted-foreground text-xl sm:text-2xl">
                         {profile.name?.[0]?.toUpperCase() || '?'}
                       </span>
                     </div>
                   )}
                   <div>
-                    <h2 className="text-2xl font-semibold">
+                    <h2 className="text-xl sm:text-2xl font-semibold">
                       {profile.name || 'No name set'}
                     </h2>
-                    <p className="text-muted-foreground">{profile.email}</p>
+                    <p className="text-sm sm:text-base text-muted-foreground">{profile.email}</p>
                   </div>
                 </div>
 
-                <Separator className="my-4" />
+                <Separator className="my-3 sm:my-4" />
 
                 <div>
-                  <h3 className="text-lg font-medium mb-4">Application Documents</h3>
+                  <h3 className="text-base sm:text-lg font-medium mb-2 sm:mb-4">Application Documents</h3>
                   <div className="space-y-2">
                     {profile.documents.length > 0 ? (
                       profile.documents.map((doc: any) => (
@@ -356,6 +389,40 @@ export default function ProfilePage() {
                       ))
                     ) : (
                       <p className="text-sm text-muted-foreground">No documents uploaded yet</p>
+                    )}
+                  </div>
+                </div>
+
+                <Separator className="my-3 sm:my-4" />
+
+                <div>
+                  <h3 className="text-base sm:text-lg font-medium mb-2 sm:mb-4">AI Assistant Configuration</h3>
+                  
+                  {/* Job Ranker Settings */}
+                  <div className="mb-4">
+                    <div className="flex items-center mb-1">
+                      <h4 className="text-sm font-medium">Job Ranker Criteria</h4>
+                    </div>
+                    {profile.jobRankerPrompt ? (
+                      <div className="p-3 bg-muted/40 rounded-md">
+                        <p className="text-xs sm:text-sm whitespace-pre-wrap">{profile.jobRankerPrompt}</p>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No job ranking criteria set</p>
+                    )}
+                  </div>
+                  
+                  {/* Job Composer Settings */}
+                  <div>
+                    <div className="flex items-center mb-1">
+                      <h4 className="text-sm font-medium">Job Composer Criteria</h4>
+                    </div>
+                    {profile.composerPrompt ? (
+                      <div className="p-3 bg-muted/40 rounded-md">
+                        <p className="text-xs sm:text-sm whitespace-pre-wrap">{profile.composerPrompt}</p>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No job composer criteria set</p>
                     )}
                   </div>
                 </div>
