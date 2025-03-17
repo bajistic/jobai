@@ -306,6 +306,82 @@ export class OpenAIService {
       throw error;
     }
   }
+  
+  /**
+   * Retrieves instructions from an OpenAI assistant
+   */
+  public async getAssistantInstructions(assistantId: string): Promise<string> {
+    try {
+      const assistant = await this.openai.beta.assistants.retrieve(assistantId);
+      return assistant.instructions || '';
+    } catch (error) {
+      console.error('Error retrieving assistant instructions:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Syncs instructions from OpenAI to local database
+   * @returns true if changes were made, false if already in sync
+   */
+  public async syncAssistantInstructions(userId: string, assistantId: string, assistantName: string): Promise<boolean> {
+    try {
+      // Get instructions from OpenAI
+      const instructions = await this.getAssistantInstructions(assistantId);
+      
+      // Get local record
+      const localAssistant = await prisma.userAssistant.findUnique({
+        where: {
+          userId_assistantName: {
+            userId,
+            assistantName
+          }
+        }
+      });
+      
+      // If local record doesn't exist or has different instructions, update it
+      if (!localAssistant || localAssistant.systemPrompt !== instructions) {
+        await prisma.userAssistant.upsert({
+          where: {
+            userId_assistantName: {
+              userId,
+              assistantName
+            }
+          },
+          create: {
+            userId,
+            assistantId,
+            assistantName,
+            systemPrompt: instructions,
+          },
+          update: {
+            systemPrompt: instructions,
+          },
+        });
+        
+        // If this is a job ranker, also update the UserProfile
+        if (assistantName === `JobRanker_${userId}`) {
+          await prisma.userProfile.upsert({
+            where: { userId },
+            create: {
+              userId,
+              jobRankerPrompt: instructions,
+            },
+            update: {
+              jobRankerPrompt: instructions,
+            },
+          });
+        }
+        
+        return true; // Changes were made
+      }
+      
+      return false; // No changes needed
+    } catch (error) {
+      console.error('Error syncing assistant instructions:', error);
+      throw error;
+    }
+  }
 
   public async generateCoverLetter(
     userId: string,

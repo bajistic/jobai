@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { User, UserAssistant, UserDocument, job_preferences } from '@prisma/client'
+import { OpenAIService } from '@/services/openai.service'
 
 type UserWithRelations = User & {
   documents: UserDocument[],
@@ -28,14 +29,15 @@ export async function GET() {
             }
           }
         },
-        job_preferences: true
+        job_preferences: false
       },
     }) as UserWithRelations | null
-    
+    console.log(user)
+
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
-    
+
     // Get default job ranker prompt if no profile exists
     const defaultJobRankerPrompt = `Analysiere die folgende Stellenanzeige und berechne Punkte basierend auf den folgenden Kriterien.
 
@@ -61,11 +63,76 @@ Minuspunkte:
 (-2) Ein Zertifikat ist erforderlich
 (-1) Punkt für jedes Jahr Berufserfahrung in einem Bereich, der nicht oben genannt ist (z.B. (-4) wenn 4 Jahre Erfahrung erfordert) oder (-3) wenn "mehrjährige" Erfahrung`;
 
-    // Find Composer assistant for the composer prompt
-    const composerAssistant = user.assistants.find((a: UserAssistant) => a.assistantName === `Composer_${userId}`);
+    // Initialize OpenAI service
+    const openaiService = OpenAIService.getInstance();
 
-    // Get job ranker prompt from the database
-    const jobRankerPrompt = await getJobRankerPrompt(userId) || defaultJobRankerPrompt;
+    // Sync instructions from OpenAI with local database (if we have assistants)
+    const composerAssistant = user.assistants.find((a: UserAssistant) => a.assistantName === `Composer_${userId}`);
+    const jobRankerAssistant = user.assistants.find((a: UserAssistant) => a.assistantName === `JobRanker_${userId}`);
+    
+    let jobRankerPrompt = defaultJobRankerPrompt;
+    let composerPrompt = '';
+    
+    // For Composer assistant: sync with OpenAI and get latest instructions
+    if (composerAssistant && composerAssistant.assistantId) {
+      try {
+        await openaiService.syncAssistantInstructions(
+          userId, 
+          composerAssistant.assistantId, 
+          composerAssistant.assistantName
+        );
+        
+        // Get the latest instructions from OpenAI
+        composerPrompt = await openaiService.getAssistantInstructions(composerAssistant.assistantId);
+        
+        // If it's empty or unavailable, fall back to database
+        if (!composerPrompt) {
+          composerPrompt = composerAssistant.systemPrompt || '';
+        }
+      } catch (error) {
+        console.error('Error syncing Composer instructions:', error);
+        // Fall back to database if OpenAI retrieval fails
+        composerPrompt = composerAssistant.systemPrompt || '';
+      }
+    }
+    
+    // For JobRanker assistant: sync with OpenAI and get latest instructions
+    if (jobRankerAssistant && jobRankerAssistant.assistantId) {
+      try {
+        await openaiService.syncAssistantInstructions(
+          userId, 
+          jobRankerAssistant.assistantId, 
+          jobRankerAssistant.assistantName
+        );
+        
+        // Get the latest instructions from OpenAI
+        const openaiInstructions = await openaiService.getAssistantInstructions(jobRankerAssistant.assistantId);
+        
+        // If we get valid instructions, use them
+        if (openaiInstructions) {
+          jobRankerPrompt = openaiInstructions;
+        } else {
+          // Otherwise, try getting from database
+          const dbPrompt = await getJobRankerPrompt(userId);
+          if (dbPrompt) {
+            jobRankerPrompt = dbPrompt;
+          }
+        }
+      } catch (error) {
+        console.error('Error syncing JobRanker instructions:', error);
+        // Try getting from database if OpenAI fails
+        const dbPrompt = await getJobRankerPrompt(userId);
+        if (dbPrompt) {
+          jobRankerPrompt = dbPrompt;
+        }
+      }
+    } else {
+      // If no JobRanker assistant, try database
+      const dbPrompt = await getJobRankerPrompt(userId);
+      if (dbPrompt) {
+        jobRankerPrompt = dbPrompt;
+      }
+    }
 
     return NextResponse.json({
       id: user.id,
@@ -75,7 +142,7 @@ Minuspunkte:
       documents: user.documents,
       assistants: user.assistants,
       jobRankerPrompt,
-      composerPrompt: composerAssistant?.systemPrompt || '',
+      composerPrompt,
       job_preferences: user.job_preferences || []
     })
   } catch (error) {
@@ -91,11 +158,11 @@ async function getJobRankerPrompt(userId: string): Promise<string | null> {
     const profile = await prisma.$queryRaw`
       SELECT "jobRankerPrompt" FROM "UserProfile" WHERE "userId" = ${userId} LIMIT 1
     `;
-    
+
     if (profile && Array.isArray(profile) && profile.length > 0 && profile[0].jobRankerPrompt) {
       return profile[0].jobRankerPrompt;
     }
-    
+
     // If not found, try to get from JobRanker assistant
     const jobRanker = await prisma.userAssistant.findFirst({
       where: {
@@ -103,7 +170,7 @@ async function getJobRankerPrompt(userId: string): Promise<string | null> {
         assistantName: `JobRanker_${userId}`
       }
     });
-    
+
     return jobRanker?.systemPrompt || null;
   } catch (error) {
     console.error('Error getting job ranker prompt:', error);
@@ -118,19 +185,29 @@ export async function PUT(request: Request) {
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 })
     }
-    
+
+    // Initialize OpenAI service
+    const openaiService = OpenAIService.getInstance();
+
     // Fetch user assistants
-    const userComposer = await prisma.userAssistant.findFirst({ 
-      where: { 
-        userId, 
-        assistantName: `Composer_${userId}` 
-      } 
+    const userComposer = await prisma.userAssistant.findFirst({
+      where: {
+        userId,
+        assistantName: `Composer_${userId}`
+      }
     });
-    
+
+    const userJobRanker = await prisma.userAssistant.findFirst({
+      where: {
+        userId,
+        assistantName: `JobRanker_${userId}`
+      }
+    });
+
     if (!userComposer) {
       console.warn(`No composer assistant found for user ${userId}`);
     }
-    
+
     const data = await request.json()
     console.log('Received data for update:', data);
 
@@ -144,15 +221,46 @@ export async function PUT(request: Request) {
 
     // Update composer assistant if it exists
     if (userComposer && data.composerPrompt) {
-      await prisma.userAssistant.update({
-        where: { id: userComposer.id },
-        data: { systemPrompt: data.composerPrompt }
-      });
+      try {
+        // Update the OpenAI assistant first (source of truth)
+        await openaiService.updateComposerAssistant(userId, userComposer.assistantId, data.composerPrompt);
+        
+        // Then update local DB
+        await prisma.userAssistant.update({
+          where: { id: userComposer.id },
+          data: { systemPrompt: data.composerPrompt }
+        });
+      } catch (error) {
+        console.error('Error updating composer assistant in OpenAI:', error);
+        
+        // Fall back to just updating local database
+        await prisma.userAssistant.update({
+          where: { id: userComposer.id },
+          data: { systemPrompt: data.composerPrompt }
+        });
+      }
     }
 
     // Update job ranker prompt
     if (data.jobRankerPrompt) {
-      await updateJobRankerPrompt(userId, data.jobRankerPrompt);
+      try {
+        // If we have a job ranker assistant, update it in OpenAI first
+        if (userJobRanker) {
+          // Update the OpenAI JobRanker assistant
+          await openaiService.openai.beta.assistants.update(
+            userJobRanker.assistantId,
+            { instructions: data.jobRankerPrompt }
+          );
+        }
+        
+        // Then update in local database
+        await updateJobRankerPrompt(userId, data.jobRankerPrompt);
+      } catch (error) {
+        console.error('Error updating job ranker in OpenAI:', error);
+        
+        // Fall back to just updating local database
+        await updateJobRankerPrompt(userId, data.jobRankerPrompt);
+      }
     }
 
     return NextResponse.json({ success: true })
@@ -169,7 +277,7 @@ async function updateJobRankerPrompt(userId: string, prompt: string): Promise<vo
     const profile = await prisma.$queryRaw`
       SELECT id FROM "UserProfile" WHERE "userId" = ${userId} LIMIT 1
     `;
-    
+
     if (profile && Array.isArray(profile) && profile.length > 0) {
       // Update existing profile
       await prisma.$executeRaw`
@@ -182,7 +290,7 @@ async function updateJobRankerPrompt(userId: string, prompt: string): Promise<vo
         VALUES (gen_random_uuid(), ${userId}, ${prompt}, NOW(), NOW())
       `;
     }
-    
+
     // Also update or create JobRanker assistant
     const jobRanker = await prisma.userAssistant.findFirst({
       where: {
@@ -190,7 +298,7 @@ async function updateJobRankerPrompt(userId: string, prompt: string): Promise<vo
         assistantName: `JobRanker_${userId}`
       }
     });
-    
+
     if (jobRanker) {
       await prisma.userAssistant.update({
         where: { id: jobRanker.id },
